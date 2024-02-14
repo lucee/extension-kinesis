@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="libs/com.fasterxml.jackson.core.jackson-annotations-2.15.0.jar"/>
+	<classpathentry kind="lib" path="libs/com.fasterxml.jackson.core.jackson-core-2.15.0.jar"/>
+	<classpathentry kind="lib" path="libs/com.fasterxml.jackson.core.jackson-databind-2.15.0.jar"/>
+	<classpathentry kind="lib" path="libs/com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.15.0.jar"/>
+	<classpathentry kind="lib" path="libs/javax.servlet-api-3.1.0.jar"/>
+	<classpathentry kind="lib" path="libs/jsp-api-2.2.jar"/>
+	<classpathentry kind="lib" path="libs/lucee.jar"/>
+	<classpathentry kind="lib" path="libs/org.apache.commons.commons-codec-1.15.0.jar"/>
+	<classpathentry kind="lib" path="libs/org.apache.commons.pool2-2.8.1.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.httpcomponents.httpclient-4.5.13.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.httpcomponents.httpcore-4.4.13.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.httpcomponents.httpmime-4.5.13.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.buffer-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.codec-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.codec-http2-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.codec-http-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.common-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.handler-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.resolver-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.transport-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.transport-classes-epoll-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/io.netty.transport-native-unix-common-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.kinesis-all-2.24.1.jar"/>
+	<classpathentry kind="lib" path="libs/reactive-streams-1.0.4.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
