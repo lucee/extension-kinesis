@@ -18,17 +18,20 @@
 	<classpathentry kind="lib" path="libs/org.lucee.httpcomponents.httpclient-4.5.13.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.httpcomponents.httpcore-4.4.13.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.httpcomponents.httpmime-4.5.13.jar"/>
-	<classpathentry kind="lib" path="libs/io.netty.buffer-4.1.100.Final.jar"/>
-	<classpathentry kind="lib" path="libs/io.netty.codec-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/io.netty.codec-http2-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/io.netty.codec-http-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/io.netty.common-4.1.100.Final.jar"/>
-	<classpathentry kind="lib" path="libs/io.netty.handler-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/io.netty.resolver-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/io.netty.transport-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/io.netty.transport-classes-epoll-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/io.netty.transport-native-unix-common-4.1.100.Final.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.kinesis-all-2.24.1.jar"/>
 	<classpathentry kind="lib" path="libs/reactive-streams-1.0.4.jar"/>
+	<classpathentry kind="lib" path="libs/bouncycastle.mail-1.38.0.jar"/>
+	<classpathentry kind="lib" path="libs/bouncycastle.prov-1.38.0.jar"/>
+	<classpathentry kind="lib" path="libs/bouncycastle.tsp-1.38.0.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.netty-buffer-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.netty-codec-4.1.100.Final.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.netty-handler-4.1.100.Final.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
