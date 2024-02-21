@@ -4,11 +4,191 @@
 <!-- http://www.getrailo.com/j2ee/dtd/web-jspfunctionlibrary_1_0.dtd -->
 <func-lib>
 	<flib-version>1.00</flib-version>
-	<short-name>EC2</short-name>
-	<uri>http://extension.lucee.org/function/kinesis</uri>
+	<short-name>Kinesis</short-name>
+	<uri>http://extension.lucee.org/function/ec2</uri>
 	<display-name>EC2</display-name>
 	<description>
 		Functions to interact with Kinesis
 	</description>
 
+<!-- KinesisGet -->
+	<function>
+		<name>KinesisGet</name>
+		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.aws.kinesis.function.KinesisGet</class>
+		<description>This function interacts with AWS Kinesis to fetch records from a specified stream and shard. It allows for specifying the iterator type to determine the starting point of the records to fetch.</description>
+    <argument>
+        <name>streamName</name>
+        <type>string</type>
+        <required>yes</required>
+        <description>The name of the AWS Kinesis stream from which records are to be fetched. This parameter is required to identify the target stream.</description>
+    </argument>
+    <argument>
+        <name>shardId</name>
+        <type>string</type>
+        <required>no</required>
+        <description>The identifier for the shard within the specified Kinesis stream from which to start reading records. Each stream is composed of one or more shards, and this parameter targets the specific shard for data retrieval.</description>
+    </argument>
+    <argument>
+        <name>iteratorType</name>
+        <type>string</type>
+        <values>TRIM_HORIZON,LATEST,AT_SEQUENCE_NUMBER,AFTER_SEQUENCE_NUMBER,AT_TIMESTAMP</values>
+        <default>TRIM_HORIZON</default>
+        <required>no</required>
+        <description>Specifies the iterator type, which determines the point within the shard from which to start reading records. Options include TRIM_HORIZON (oldest available data), LATEST (most recent data), AT_SEQUENCE_NUMBER, AFTER_SEQUENCE_NUMBER, and AT_TIMESTAMP. Default is TRIM_HORIZON.</description>
+    </argument>
+    	<argument>
+			<name>accessKeyId</name>
+			<alias>accessKey</alias>
+			<type>string</type>
+			<required>No</required>
+			   <description>Your AWS access key ID. Used for authentication with AWS services. This key must have appropriate permissions for EC2 describe instance operations.</description>
+	    </argument>
+		<argument>
+			<name>secretAccessKey</name>
+			<alias>secretkey</alias>
+			<type>string</type>
+			<required>No</required>
+		    <description>Your AWS secret access key associated with the access key ID. This key is used in conjunction with the accessKeyId for authentication.</description>
+   		</argument>
+		<argument>
+			<name>host</name>
+			<alias>provider,server</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The endpoint or the provider to connect to. If not set, Amazon AWS is used. This can be used to specify a different AWS region or a custom EC2-compatible endpoint.</description>
+   		</argument>
+		<argument>
+			<name>location</name>
+			<alias>region</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The AWS region hosting the EC2 endpoint. If not specified, the default region associated with the provided credentials is used.</description>
+    	</argument>
+		<argument>
+			<name>timeout</name>
+			<type>number</type>
+			<required>No</required>
+			<default>10000</default>
+			<description>The timeout in milliseconds for the EC2 describe instances request. Defaults to 10000 milliseconds (10 seconds).</description>
+    	</argument>
+		<return>
+			<type>query</type>
+		</return>
+	</function>
+
+
+<!-- KinesisPut -->
+	<function>
+		<name>KinesisPut</name>
+		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.aws.kinesis.function.KinesisPut</class>
+		<description></description>
+    	
+    	<argument>
+			<name>data</name>
+			<type>struct</type>
+			<required>yes</required>
+		    <description></description>
+    	</argument>
+    	<argument>
+			<name>partitionKey</name>
+			<type>string</type>
+			<required>no</required>
+		    <description></description>
+    	</argument>
+    	<argument>
+			<name>streamName</name>
+			<type>string</type>
+			<required>no</required>
+		    <description></description>
+    	</argument>
+    	<argument>
+			<name>accessKeyId</name>
+			<alias>accessKey</alias>
+			<type>string</type>
+			<required>No</required>
+			   <description>Your AWS access key ID. Used for authentication with AWS services. This key must have appropriate permissions for EC2 describe instance operations.</description>
+	    </argument>
+		<argument>
+			<name>secretAccessKey</name>
+			<alias>secretkey</alias>
+			<type>string</type>
+			<required>No</required>
+		    <description>Your AWS secret access key associated with the access key ID. This key is used in conjunction with the accessKeyId for authentication.</description>
+   		</argument>
+		<argument>
+			<name>host</name>
+			<alias>provider,server</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The endpoint or the provider to connect to. If not set, Amazon AWS is used. This can be used to specify a different AWS region or a custom EC2-compatible endpoint.</description>
+   		</argument>
+		<argument>
+			<name>location</name>
+			<alias>region</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The AWS region hosting the EC2 endpoint. If not specified, the default region associated with the provided credentials is used.</description>
+    	</argument>
+		<argument>
+			<name>timeout</name>
+			<type>number</type>
+			<required>No</required>
+			<default>10000</default>
+			<description>The timeout in milliseconds for the EC2 describe instances request. Defaults to 10000 milliseconds (10 seconds).</description>
+    	</argument>
+		<return>
+			<type>struct</type>
+		</return>
+	</function>
+
+	<!-- KinesisInfo -->
+	<function>
+		<name>KinesisInfo</name>
+		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.aws.kinesis.function.KinesisInfo</class>
+		<description></description>
+    <argument>
+        <name>streamName</name>
+        <type>string</type>
+        <required>yes</required>
+        <description>The name of the AWS Kinesis stream from which records are to be fetched. This parameter is required to identify the target stream.</description>
+    </argument>
+    	<argument>
+			<name>accessKeyId</name>
+			<alias>accessKey</alias>
+			<type>string</type>
+			<required>No</required>
+			   <description>Your AWS access key ID. Used for authentication with AWS services. This key must have appropriate permissions for EC2 describe instance operations.</description>
+	    </argument>
+		<argument>
+			<name>secretAccessKey</name>
+			<alias>secretkey</alias>
+			<type>string</type>
+			<required>No</required>
+		    <description>Your AWS secret access key associated with the access key ID. This key is used in conjunction with the accessKeyId for authentication.</description>
+   		</argument>
+		<argument>
+			<name>host</name>
+			<alias>provider,server</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The endpoint or the provider to connect to. If not set, Amazon AWS is used. This can be used to specify a different AWS region or a custom EC2-compatible endpoint.</description>
+   		</argument>
+		<argument>
+			<name>location</name>
+			<alias>region</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The AWS region hosting the EC2 endpoint. If not specified, the default region associated with the provided credentials is used.</description>
+    	</argument>
+		<argument>
+			<name>timeout</name>
+			<type>number</type>
+			<required>No</required>
+			<default>10000</default>
+			<description>The timeout in milliseconds for the EC2 describe instances request. Defaults to 10000 milliseconds (10 seconds).</description>
+    	</argument>
+		<return>
+			<type>struct</type>
+		</return>
+	</function>
 </func-lib>
