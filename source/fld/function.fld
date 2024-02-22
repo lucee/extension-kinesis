@@ -104,7 +104,7 @@
     	
     	<argument>
 			<name>data</name>
-			<type>struct</type>
+			<type>collection</type>
 			<required>yes</required>
 		    <description></description>
     	</argument>
