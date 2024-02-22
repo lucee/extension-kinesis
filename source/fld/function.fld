@@ -28,6 +28,18 @@
         <required>no</required>
         <description>The identifier for the shard within the specified Kinesis stream from which to start reading records. Each stream is composed of one or more shards, and this parameter targets the specific shard for data retrieval.</description>
     </argument>
+	<argument>
+	    <name>sequenceNumber</name>
+	    <type>string</type>
+	    <required>no</required>
+	    <description>A sequence number to start reading from within the shard, applicable when iteratorType is set to AT_SEQUENCE_NUMBER or AFTER_SEQUENCE_NUMBER. It defines a specific record in the shard from which to start reading, allowing precise control over the starting point.</description>
+	</argument>
+	<argument>
+	    <name>timestamp</name>
+	    <type>datetime</type>
+	    <required>no</required>
+	    <description>The timestamp from which to start reading records, required when iteratorType is AT_TIMESTAMP. This allows fetching records from a precise moment, providing a way to read data starting from a specific point in time within the shard.</description>
+	</argument>
     <argument>
         <name>iteratorType</name>
         <type>string</type>
@@ -36,6 +48,13 @@
         <required>no</required>
         <description>Specifies the iterator type, which determines the point within the shard from which to start reading records. Options include TRIM_HORIZON (oldest available data), LATEST (most recent data), AT_SEQUENCE_NUMBER, AFTER_SEQUENCE_NUMBER, and AT_TIMESTAMP. Default is TRIM_HORIZON.</description>
     </argument>
+	<argument>
+	    <name>maxrows</name>
+	    <type>numeric</type>
+	    <required>no</required>
+	    <default>0</default>
+	    <description>the maximal amount of rows returned, 0 is equal to no limitation.</description>
+	</argument>
     	<argument>
 			<name>accessKeyId</name>
 			<alias>accessKey</alias>
