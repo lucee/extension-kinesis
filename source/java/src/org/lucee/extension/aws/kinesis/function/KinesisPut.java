@@ -2,9 +2,12 @@ package org.lucee.extension.aws.kinesis.function;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.lucee.extension.aws.kinesis.AmazonKinesisClient;
 import org.lucee.extension.aws.kinesis.util.Functions;
+import org.lucee.extension.aws.kinesis.util.JSONSerializer;
 
 import lucee.commons.io.log.Log;
 import lucee.loader.engine.CFMLEngine;
@@ -32,8 +35,19 @@ public class KinesisPut extends KinesisFunction {
 
 	private static final long serialVersionUID = 5961249624495798999L;
 
-	public static Struct call(PageContext pc, Collection collData, String partitionKey, String streamName, String accessKeyId, String secretAccessKey, String host, String location,
-			double timeout) throws PageException {
+	public static Struct call(PageContext pc, Collection collData, String partitionKey, String streamName, boolean parallel, double maxThreads, String accessKeyId,
+			String secretAccessKey, String host, String location, double timeout) throws PageException {
+
+		if (parallel) {
+			ExecutorService executor = Executors.newFixedThreadPool(maxThreads > 0 ? (int) maxThreads : 10);
+			executor.execute(new Executable(pc.getConfig().getLog("application"), collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout));
+			return null;
+		}
+		else return _call(pc, pc.getConfig().getLog("application"), collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout, true);
+	}
+
+	public static Struct _call(PageContext pcMayNull, Log log, Collection collData, String partitionKey, String streamName, String accessKeyId, String secretAccessKey, String host,
+			String location, double timeout, boolean createReturnData) throws PageException {
 		CFMLEngine eng = CFMLEngineFactory.getInstance();
 		Decision dec = eng.getDecisionUtil();
 		Creation creator = eng.getCreationUtil();
@@ -43,17 +57,18 @@ public class KinesisPut extends KinesisFunction {
 		if (eng.getStringUtil().isEmpty(location, true)) location = null;
 
 		try {
-			Log log = pc.getConfig().getLog("application");
 			KinesisClient client = AmazonKinesisClient.get(accessKeyId, secretAccessKey, host, location, toTimeout(timeout), log);
 			if (dec.isArray(collData)) {
 				Object[] arr = caster.toNativeArray(collData);
 				List<PutRecordsRequestEntry> recordsList = new ArrayList<>();
 				for (Object o: arr) {
-					SdkBytes bytes = SdkBytes.fromString(Functions.serializeJSON(pc, caster.toStruct(o), false), KinesisGet.UTF_8); // MUST serailize data to json
+					SdkBytes bytes = SdkBytes.fromString(serializeJSON(pcMayNull, caster.toStruct(o)), KinesisGet.UTF_8); // MUST serailize data to json
 					recordsList.add(PutRecordsRequestEntry.builder().partitionKey(partitionKey).data(bytes).build());
 				}
 				PutRecordsRequest req = PutRecordsRequest.builder().streamName(streamName).records(recordsList).build();
 				PutRecordsResponse rsp = client.putRecords(req);
+
+				if (!createReturnData) return null;
 
 				// fill up response
 				Struct result = creator.createStruct();
@@ -77,10 +92,11 @@ public class KinesisPut extends KinesisFunction {
 				return result;
 			}
 			else if (dec.isStruct(collData)) {
-				SdkBytes bytes = SdkBytes.fromString(Functions.serializeJSON(pc, caster.toStruct(collData), false), KinesisGet.UTF_8);
+
+				SdkBytes bytes = SdkBytes.fromString(serializeJSON(pcMayNull, caster.toStruct(collData)), KinesisGet.UTF_8);
 				PutRecordRequest req = PutRecordRequest.builder().partitionKey(partitionKey).streamName(streamName).data(bytes).build();
 				PutRecordResponse rsp = client.putRecord(req);
-
+				if (!createReturnData) return null;
 				// fill up response
 				Struct result = creator.createStruct();
 				result.set("encryptionType", rsp.encryptionTypeAsString());
@@ -98,8 +114,8 @@ public class KinesisPut extends KinesisFunction {
 
 			}
 			else {
-				throw eng.getExceptionUtil().createFunctionException(pc, "KinesisPut", 1, "data",
-						"invalid argument type [" + caster.toTypeName(collData) + "] for argument data, only the following types are supported [array, struct]", null);
+				throw eng.getExceptionUtil().createApplicationException(
+						"invalid argument type [" + caster.toTypeName(collData) + "] for argument data, only the following types are supported [array, struct]");
 			}
 
 		}
@@ -108,72 +124,125 @@ public class KinesisPut extends KinesisFunction {
 		}
 	}
 
+	private static String serializeJSON(PageContext pc, Struct data) throws PageException {
+		if (pc == null) pc = CFMLEngineFactory.getInstance().getThreadPageContext();
+		if (pc != null) return Functions.serialize(pc, data);
+		return new JSONSerializer(KinesisGet.UTF_8).serialize(data);
+	}
+
 	@Override
 	public Object invoke(PageContext pc, Object[] args) throws PageException {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		Cast cast = engine.getCastUtil();
+		Decision dec = engine.getDecisionUtil();
 
-		if (args.length < 1 || args.length > 8) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisPut", 1, 8, args.length);
+		if (args.length < 1 || args.length > 9) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisPut", 1, 9, args.length);
 		// data
 		Collection data = cast.toCollection(args[0]);
 
 		// partitionKey
 		String partitionKey = null;
 		if (args.length > 1) {
-			String tmp = cast.toString(args[1]);
-			if (!Util.isEmpty(tmp, true)) partitionKey = tmp.trim();
-			else partitionKey = null;
+			partitionKey = dec.isEmpty(args[1]) ? null : cast.toString(args[1]);
 		}
 
 		// streamName
 		String streamName = null;
 		if (args.length > 2) {
-			String tmp = cast.toString(args[2]);
-			if (!Util.isEmpty(tmp, true)) streamName = tmp.trim();
-			else streamName = null;
+			streamName = dec.isEmpty(args[2]) ? null : cast.toString(args[2]);
+		}
+
+		// parallel
+		boolean parallel = false;
+		if (args.length > 3) {
+			parallel = dec.isEmpty(args[3]) ? false : cast.toBooleanValue(args[3]);
+		}
+
+		// maxThreads
+		double maxThreads = 10;
+		if (args.length > 4) {
+			maxThreads = dec.isEmpty(args[4]) ? 10 : cast.toDoubleValue(args[4]);
 		}
 
 		// accessKeyId
 		String accessKeyId = null;
-		if (args.length > 3) {
-			String tmp = cast.toString(args[3]);
+		if (args.length > 5) {
+			String tmp = cast.toString(args[5]);
 			if (!Util.isEmpty(tmp, true)) accessKeyId = tmp.trim();
 			else accessKeyId = null;
 		}
 
 		// secretAccessKey
 		String secretAccessKey = null;
-		if (args.length > 4) {
-			String tmp = cast.toString(args[4]);
+		if (args.length > 6) {
+			String tmp = cast.toString(args[6]);
 			if (!Util.isEmpty(tmp, true)) secretAccessKey = tmp.trim();
 			else secretAccessKey = null;
 		}
 
 		// host
 		String host = null;
-		if (args.length > 5) {
-			String tmp = cast.toString(args[5]);
+		if (args.length > 7) {
+			String tmp = cast.toString(args[7]);
 			if (!Util.isEmpty(tmp, true)) host = tmp.trim();
 			else host = null;
 		}
 
 		// location
 		String location = null;
-		if (args.length > 6) {
-			String tmp = cast.toString(args[6]);
+		if (args.length > 8) {
+			String tmp = cast.toString(args[8]);
 			if (!Util.isEmpty(tmp, true)) location = tmp.trim();
 			else location = null;
 		}
 
 		// timeout
 		double timeout = 0;
-		if (args.length > 7) {
-			double tmp = cast.toDoubleValue(args[7]);
+		if (args.length > 9) {
+			double tmp = cast.toDoubleValue(args[9]);
 			if (tmp > 0) timeout = tmp;
 			else timeout = 0;
 		}
 
-		return call(pc, data, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout);
+		return call(pc, data, partitionKey, streamName, parallel, maxThreads, accessKeyId, secretAccessKey, host, location, timeout);
+
+	}
+
+	private static class Executable implements Runnable {
+
+		private Log log;
+		private Collection collData;
+		private String partitionKey;
+		private String streamName;
+		private String accessKeyId;
+		private String secretAccessKey;
+		private String host;
+		private String location;
+		private double timeout;
+
+		public Executable(Log log, Collection collData, String partitionKey, String streamName, String accessKeyId, String secretAccessKey, String host, String location,
+				double timeout) throws PageException {
+			this.log = log;
+			this.collData = collData;
+			this.partitionKey = partitionKey;
+			this.streamName = streamName;
+			this.accessKeyId = accessKeyId;
+			this.secretAccessKey = secretAccessKey;
+			this.host = host;
+			this.location = location;
+			this.timeout = timeout;
+		}
+
+		@Override
+		public void run() {
+			try {
+				_call(null, log, collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout, false);
+			}
+			catch (Exception e) {
+				if (log != null) log.error("kinesis", e);
+				else e.printStackTrace();
+			}
+		}
 
 	}
 }

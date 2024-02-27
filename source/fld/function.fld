@@ -121,6 +121,20 @@
 		    <description></description>
     	</argument>
     	<argument>
+			<name>parallel</name>
+			<type>boolean</type>
+			<required>no</required>
+		    <description></description>
+		    <default>false</default>
+    	</argument>
+    	<argument>
+			<name>maxThreads</name>
+			<type>numeric</type>
+			<required>no</required>
+		    <description></description>
+		    <default>10</default>
+    	</argument>
+    	<argument>
 			<name>accessKeyId</name>
 			<alias>accessKey</alias>
 			<type>string</type>

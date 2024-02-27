@@ -259,7 +259,7 @@ public class KinesisGet extends KinesisFunction {
 		// accessKeyId
 		String accessKeyId = null;
 		if (args.length > 6) {
-			String tmp = dec.isEmpty(args[6]) ? null : cast.toString(args[67]);
+			String tmp = dec.isEmpty(args[6]) ? null : cast.toString(args[6]);
 			if (!Util.isEmpty(tmp, true)) accessKeyId = tmp.trim();
 			else accessKeyId = null;
 		}
