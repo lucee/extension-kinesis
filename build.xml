@@ -123,7 +123,7 @@ start-bundles: false
     <loadfile property="c1" srcFile="${fld}/function.fld" />
     <replace haystack="${c1}" needle="{bundle-name}" repl="${bundlename}" property="c2"/>
     <replace haystack="${c2}" needle="{bundle-version}" repl="${bundleversion}${build.number}${appendix}" property="c3"/>
-    <echo message="${c3}" file="${dist}/extension/flds/ec2-functions.fld"/>
+    <echo message="${c3}" file="${dist}/extension/flds/kinesis-functions.fld"/>
 
 
 
