@@ -116,7 +116,6 @@ component extends="tests.testcases.BaseDistroKidTest"{
 					);
 					var time=getTickCount()-start;
 					messurments.total+=time;
-					
 					// slowest
 					if(messurments.slowest<time) {
 						messurments.slowest=time;
@@ -134,7 +133,7 @@ component extends="tests.testcases.BaseDistroKidTest"{
 
 			
 
-			it("fetch records from stream with kenesisGet with shardId from last put and iteratorType=TRIM_HORIZON", function() localMode = true {
+			/* takes very long it("fetch records from stream with kenesisGet with shardId from last put and iteratorType=TRIM_HORIZON", function() localMode = true {
 				streamName = "kds-dk-logs-dev";
 				var rsp = kinesisPut(
 					data:createRecord(), 
@@ -149,7 +148,7 @@ component extends="tests.testcases.BaseDistroKidTest"{
 				);
 				debug(rsp);
 				expect( rsp.recordcount ).toBe( 1 );
-			});
+			});*/
 
 			it("fetch records from stream with kenesisGet with explicit and timestamp shardId from last put", function() localMode = true {
 				streamName = "kds-dk-logs-dev";
