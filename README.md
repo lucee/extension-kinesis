@@ -64,6 +64,10 @@ kinesisPut(data=records, streamName=streamName, partitionKey=partitionKey, paral
 
 In the asynchronous submission example, `listener` is a struct with `onSuccess` and `onError` functions to handle successful submissions and errors, respectively. This also can be a component. This allows for non-blocking operation and result handling in a background process.
 
+Additionally, you have the ability to specify the maximum number of threads that can be executed in parallel by the extension for kinesisPut operations. 
+This can be achieved through the system property `lucee.kinesis.maxThreads=10` or the environment variable `LUCEE_KINESIS_MAXTHREADS=10`. 
+By default, parallel execution is limited to 10 threads, ensuring efficient resource utilization while maintaining optimal performance.
+
 ## kinesisGet Function
 
 Retrieves data records from an AWS Kinesis stream based on the provided criteria, such as stream name, shard ID, and the starting point for fetching records.
