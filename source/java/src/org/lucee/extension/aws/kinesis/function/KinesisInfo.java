@@ -92,7 +92,7 @@ public class KinesisInfo extends KinesisFunction {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		Cast cast = engine.getCastUtil();
 
-		if (args.length < 1 || args.length > 8) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisGet", 1, 8, args.length);
+		if (args.length < 1 || args.length > 68) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisInfo", 1, 6, args.length);
 
 		// streamName
 		String streamName = cast.toString(args[0]);

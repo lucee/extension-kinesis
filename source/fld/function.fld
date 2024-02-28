@@ -98,42 +98,55 @@
 
 <!-- KinesisPut -->
 	<function>
-		<name>KinesisPut</name>
-		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.aws.kinesis.function.KinesisPut</class>
-		<description></description>
-    	
-    	<argument>
-			<name>data</name>
-			<type>collection</type>
-			<required>yes</required>
-		    <description></description>
-    	</argument>
-    	<argument>
-			<name>partitionKey</name>
-			<type>string</type>
-			<required>no</required>
-		    <description></description>
-    	</argument>
-    	<argument>
-			<name>streamName</name>
-			<type>string</type>
-			<required>no</required>
-		    <description></description>
-    	</argument>
-    	<argument>
-			<name>parallel</name>
-			<type>boolean</type>
-			<required>no</required>
-		    <description></description>
-		    <default>false</default>
-    	</argument>
-    	<argument>
-			<name>maxThreads</name>
-			<type>numeric</type>
-			<required>no</required>
-		    <description></description>
-		    <default>10</default>
-    	</argument>
+    <name>KinesisPut</name>
+    <class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.aws.kinesis.function.KinesisPut</class>
+	<description>
+    Executes a 'Put' operation to send single or multiple data records to an AWS Kinesis stream, directly integrating Lucee applications with AWS Kinesis for real-time data streaming. 
+    Supports synchronous execution or asynchronous (parallel) execution with a listener for handling operation results.
+	</description>
+    
+	<argument>
+	    <name>data</name>
+	    <type>collection</type>
+	    <required>yes</required>
+	    <description>
+	        The data record(s) to put into the Kinesis stream. This can be a struct containing a single record or an array containing multiple records, each as a struct. 
+	        Each struct represents a data record to be streamed to Kinesis, allowing for either single or batch record submissions in one call.
+	    </description>
+	</argument>
+    <argument>
+        <name>partitionKey</name>
+        <type>string</type>
+        <required>yes</required>
+        <description>
+            A key used by Kinesis to distribute data records across shards. The partition key is used by Kinesis to ensure that all data records with the same key are aggregated on the same shard.
+        </description>
+    </argument>
+    <argument>
+        <name>streamName</name>
+        <type>string</type>
+        <required>yes</required>
+        <description>
+            The name of the AWS Kinesis stream where the data record will be sent. This stream must be created in your AWS account prior to using this function.
+        </description>
+    </argument>
+    <argument>
+        <name>parallel</name>
+        <type>boolean</type>
+        <required>no</required>
+        <description>
+            Determines whether the 'Put' operation should be executed asynchronously in a separate thread. When set to true, the operation returns immediately, and the result is handled by the specified listener.
+        </description>
+        <default>false</default>
+    </argument>
+    <argument>
+        <name>listener</name>
+        <type>any</type>
+        <required>no</required>
+        <description>
+            An optional listener for handling asynchronous operation results. This should be a struct or a component containing 'onSuccess' and/or 'onError' functions. These functions are invoked upon successful or failed execution of the 'Put' operation, respectively.
+        </description>
+    </argument>
     	<argument>
 			<name>accessKeyId</name>
 			<alias>accessKey</alias>

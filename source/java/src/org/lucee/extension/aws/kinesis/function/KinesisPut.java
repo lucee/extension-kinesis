@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.lucee.extension.aws.kinesis.AmazonKinesisClient;
+import org.lucee.extension.aws.kinesis.util.CommonUtil;
 import org.lucee.extension.aws.kinesis.util.Functions;
 import org.lucee.extension.aws.kinesis.util.JSONSerializer;
 
@@ -13,6 +14,7 @@ import lucee.commons.io.log.Log;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
+import lucee.runtime.Component;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Array;
@@ -34,13 +36,22 @@ import software.amazon.awssdk.services.kinesis.model.PutRecordsResultEntry;
 public class KinesisPut extends KinesisFunction {
 
 	private static final long serialVersionUID = 5961249624495798999L;
+	private static ExecutorService executor = null;
 
-	public static Struct call(PageContext pc, Collection collData, String partitionKey, String streamName, boolean parallel, double maxThreads, String accessKeyId,
+	public static Struct call(PageContext pc, Collection collData, String partitionKey, String streamName, boolean parallel, Object listener, String accessKeyId,
 			String secretAccessKey, String host, String location, double timeout) throws PageException {
 
 		if (parallel) {
-			ExecutorService executor = Executors.newFixedThreadPool(maxThreads > 0 ? (int) maxThreads : 10);
-			executor.execute(new Executable(pc.getConfig().getLog("application"), collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout));
+			if (listener != null && !(listener instanceof Component) && !(listener instanceof Struct))
+				throw CFMLEngineFactory.getInstance().getExceptionUtil().createFunctionException(pc, "KinesisPut", 5, "listener",
+						"invalid type for listener [" + CFMLEngineFactory.getInstance().getCastUtil().toTypeName(listener) + "], listener must be a struct or component", null);
+
+			if (executor == null) {
+				int maxThreads = CFMLEngineFactory.getInstance().getCastUtil().toIntValue(CommonUtil.getSystemPropOrEnvVar("lucee.kinesis.maxThreads", null), 10);
+				executor = Executors.newFixedThreadPool(maxThreads > 0 ? (int) maxThreads : 10);
+			}
+			executor.execute(new Executable(CFMLEngineFactory.getInstance(), pc, listener, pc.getConfig().getLog("application"), collData, partitionKey, streamName, accessKeyId,
+					secretAccessKey, host, location, timeout));
 			return null;
 		}
 		else return _call(pc, pc.getConfig().getLog("application"), collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout, true);
@@ -136,7 +147,7 @@ public class KinesisPut extends KinesisFunction {
 		Cast cast = engine.getCastUtil();
 		Decision dec = engine.getDecisionUtil();
 
-		if (args.length < 1 || args.length > 9) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisPut", 1, 9, args.length);
+		if (args.length < 1 || args.length > 10) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisPut", 1, 10, args.length);
 		// data
 		Collection data = cast.toCollection(args[0]);
 
@@ -159,9 +170,9 @@ public class KinesisPut extends KinesisFunction {
 		}
 
 		// maxThreads
-		double maxThreads = 10;
+		Object listener = null;
 		if (args.length > 4) {
-			maxThreads = dec.isEmpty(args[4]) ? 10 : cast.toDoubleValue(args[4]);
+			listener = dec.isEmpty(args[4]) ? null : args[4];
 		}
 
 		// accessKeyId
@@ -204,11 +215,11 @@ public class KinesisPut extends KinesisFunction {
 			else timeout = 0;
 		}
 
-		return call(pc, data, partitionKey, streamName, parallel, maxThreads, accessKeyId, secretAccessKey, host, location, timeout);
+		return call(pc, data, partitionKey, streamName, parallel, listener, accessKeyId, secretAccessKey, host, location, timeout);
 
 	}
 
-	private static class Executable implements Runnable {
+	private static class Executable extends AbstrExecutable {
 
 		private Log log;
 		private Collection collData;
@@ -220,8 +231,9 @@ public class KinesisPut extends KinesisFunction {
 		private String location;
 		private double timeout;
 
-		public Executable(Log log, Collection collData, String partitionKey, String streamName, String accessKeyId, String secretAccessKey, String host, String location,
-				double timeout) throws PageException {
+		public Executable(CFMLEngine eng, PageContext parent, Object listener, Log log, Collection collData, String partitionKey, String streamName, String accessKeyId,
+				String secretAccessKey, String host, String location, double timeout) throws PageException {
+			super(eng, parent, listener);
 			this.log = log;
 			this.collData = collData;
 			this.partitionKey = partitionKey;
@@ -234,14 +246,8 @@ public class KinesisPut extends KinesisFunction {
 		}
 
 		@Override
-		public void run() {
-			try {
-				_call(null, log, collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout, false);
-			}
-			catch (Exception e) {
-				if (log != null) log.error("kinesis", e);
-				else e.printStackTrace();
-			}
+		public Struct call(boolean returnData) throws PageException {
+			return _call(null, log, collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout, returnData);
 		}
 
 	}
