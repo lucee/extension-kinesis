@@ -1,6 +1,19 @@
 
 # Lucee AWS Kinesis Extension - Function Examples
 
+## Credential Configuration
+
+The client attempts to find AWS credentials as follows:
+
+1. **Explicit Credentials**: If `accessKeyId` and `secretAccessKey` are provided via function arguments, these are used.
+2. **Default Credential Provider Chain**: In absence of explicit credentials, the SDK searches in:
+   - Environment Variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+   - Java System Properties (`aws.accessKeyId`, `aws.secretKey`)
+   - Credential profiles file (`~/.aws/credentials`)
+   - ECS Container Credentials (for applications running on Amazon ECS)
+   - EC2 Instance Profile Credentials (for applications running on Amazon EC2)
+
+
 ## kinesisPut Function
 
 The `kinesisPut` function sends data records to an AWS Kinesis stream. It supports the submission of both single and multiple records and offers both synchronous and asynchronous execution modes.
