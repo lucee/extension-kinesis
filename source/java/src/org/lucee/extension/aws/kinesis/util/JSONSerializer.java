@@ -201,7 +201,7 @@ public final class JSONSerializer {
 			k = e.getKey().getString();
 			value = e.getValue();
 
-			if ((value instanceof UDF || value == null)) continue;
+			if ((value instanceof UDF)) continue;
 			if (doIt) {
 				sb.append(',');
 				sb.append(eol);

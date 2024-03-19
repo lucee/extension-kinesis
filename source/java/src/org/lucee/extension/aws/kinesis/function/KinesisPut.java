@@ -135,9 +135,11 @@ public class KinesisPut extends KinesisFunction {
 		}
 	}
 
-	private static String serializeJSON(PageContext pc, Struct data) throws PageException {
+	public static String serializeJSON(PageContext pc, Struct data) throws PageException {
 		if (pc == null) pc = CFMLEngineFactory.getInstance().getThreadPageContext();
-		if (pc != null) return Functions.serialize(pc, data);
+		// if we are inside a CFML request we can use the Lucee Json Serializer
+		if (pc != null) return Functions.serializeJSON(pc, data, false);
+		// if not we use the custom serializer
 		return new JSONSerializer(KinesisGet.UTF_8).serialize(data);
 	}
 
