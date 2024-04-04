@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.lucee.extension.aws.kinesis.AmazonKinesisClient;
+import org.lucee.extension.aws.kinesis.util.CommonUtil;
 import org.lucee.extension.aws.kinesis.util.Functions;
 
 import lucee.commons.io.log.Log;
@@ -64,7 +65,8 @@ public class KinesisGet extends KinesisFunction {
 		Cast caster = eng.getCastUtil();
 		Log log = pc.getConfig().getLog("application");
 		try {
-			KinesisClient client = AmazonKinesisClient.get(accessKeyId, secretAccessKey, host, location, toTimeout(timeout), log);
+
+			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log);
 
 			// validate maxrows
 			int mr = Integer.MAX_VALUE;
@@ -178,7 +180,7 @@ public class KinesisGet extends KinesisFunction {
 			return result;
 		}
 		catch (Exception e) {
-			throw eng.getCastUtil().toPageException(e);
+			throw CommonUtil.toPageException(e);
 		}
 	}
 

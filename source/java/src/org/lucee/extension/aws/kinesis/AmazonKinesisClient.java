@@ -1,7 +1,10 @@
 package org.lucee.extension.aws.kinesis;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.lucee.extension.aws.kinesis.util.KinesisProps;
 
 import lucee.commons.io.log.Log;
 import lucee.loader.util.Util;
@@ -20,29 +23,21 @@ public class AmazonKinesisClient {
 	private long created;
 	private long liveTimeout;
 
-	private String accessKeyId;
+	private KinesisProps props;
 
-	private String secretAccessKey;
+	public static KinesisClient get(KinesisProps props, long liveTimeout, Log log) {
 
-	private String host;
-
-	private String region;
-
-	public static KinesisClient get(String accessKeyId, String secretAccessKey, String host, String region, long liveTimeout, Log log) {
-		String key = accessKeyId + ":" + secretAccessKey + ":" + host + ":" + region;
+		String key = props == null ? "system" : props.getAccessKeyId() + ":" + props.getSecretAccessKey() + ":" + props.getHost() + ":" + props.getRegion();
 		AmazonKinesisClient client = pool.get(key);
 		if (client == null || client.isExpired()) {
-			client = new AmazonKinesisClient(accessKeyId, secretAccessKey, host, region, liveTimeout, log);
+			client = new AmazonKinesisClient(props, liveTimeout, log);
 			pool.put(key, client);
 		}
 		return client.getAmazonKinesis();
 	}
 
-	private AmazonKinesisClient(String accessKeyId, String secretAccessKey, String host, String region, long liveTimeout, Log log) {
-		this.accessKeyId = accessKeyId;
-		this.secretAccessKey = secretAccessKey;
-		this.host = host;
-		this.region = region;
+	private AmazonKinesisClient(KinesisProps props, long liveTimeout, Log log) {
+		this.props = props;
 		this.log = log;
 		this.created = System.currentTimeMillis();
 		client = create();
@@ -54,12 +49,18 @@ public class AmazonKinesisClient {
 		KinesisClientBuilder builder = KinesisClient.builder();
 
 		// has credentilas
-		if (!Util.isEmpty(accessKeyId, true)) {
-			AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
+		if (props != null) {
+			AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(props.getAccessKeyId(), props.getSecretAccessKey());
 			builder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
 		}
-		// TODO other settings needed?
-		builder.region(Region.US_EAST_1); // TODO is this best?
+
+		// host
+		if (props != null && !Util.isEmpty(props.getHost(), true)) {
+			builder.endpointOverride(URI.create("http://" + props.getHost()));
+		}
+
+		// region
+		builder.region(toRegion(props != null ? props.getRegion() : null, Region.US_EAST_1)); // TODO is this best?
 
 		return builder.build();
 
@@ -86,6 +87,16 @@ public class AmazonKinesisClient {
 
 	public void release() {
 		// FUTURE remove method
+	}
+
+	public static Region toRegion(String region, Region defaultValue) {
+		if (Util.isEmpty(region, true)) return defaultValue;
+		region = region.trim();
+
+		for (Region r: Region.regions()) {
+			if (r.id().equalsIgnoreCase(region)) return r;
+		}
+		return defaultValue;
 	}
 
 }

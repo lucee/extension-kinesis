@@ -237,4 +237,50 @@
 			<type>struct</type>
 		</return>
 	</function>
+
+
+	<!-- KinesisValidate -->
+	<function>
+		<name>KinesisValidate</name>
+		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.aws.kinesis.function.KinesisValidate</class>
+		<description>Validates connectivity to an AWS Kinesis service. It makes a minimal impact call by listing Kinesis streams with a limit of one. This function is useful for verifying if the provided credentials and configuration are correct and the Kinesis service is accessible.</description>
+    	<argument>
+			<name>accessKeyId</name>
+			<alias>accessKey</alias>
+			<type>string</type>
+			<required>No</required>
+			   <description>Your AWS access key ID. Used for authentication with AWS services. This key must have appropriate permissions for EC2 describe instance operations.</description>
+	    </argument>
+		<argument>
+			<name>secretAccessKey</name>
+			<alias>secretkey</alias>
+			<type>string</type>
+			<required>No</required>
+		    <description>Your AWS secret access key associated with the access key ID. This key is used in conjunction with the accessKeyId for authentication.</description>
+   		</argument>
+		<argument>
+			<name>host</name>
+			<alias>provider,server</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The endpoint or the provider to connect to. If not set, Amazon AWS is used. This can be used to specify a different AWS region or a custom EC2-compatible endpoint.</description>
+   		</argument>
+		<argument>
+			<name>location</name>
+			<alias>region</alias>
+			<type>string</type>
+			<required>No</required>
+			<description>The AWS region hosting the EC2 endpoint. If not specified, the default region associated with the provided credentials is used.</description>
+    	</argument>
+		<argument>
+			<name>timeout</name>
+			<type>number</type>
+			<required>No</required>
+			<default>10000</default>
+			<description>The timeout in milliseconds for the EC2 describe instances request. Defaults to 10000 milliseconds (10 seconds).</description>
+    	</argument>
+		<return>
+			<type>void</type>
+		</return>
+	</function>
 </func-lib>

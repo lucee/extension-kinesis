@@ -3,6 +3,7 @@ package org.lucee.extension.aws.kinesis.function;
 import java.util.List;
 
 import org.lucee.extension.aws.kinesis.AmazonKinesisClient;
+import org.lucee.extension.aws.kinesis.util.CommonUtil;
 
 import lucee.commons.io.log.Log;
 import lucee.loader.engine.CFMLEngine;
@@ -39,7 +40,7 @@ public class KinesisInfo extends KinesisFunction {
 		try {
 			Log log = pc.getConfig().getLog("application");
 
-			KinesisClient client = AmazonKinesisClient.get(accessKeyId, secretAccessKey, host, location, toTimeout(timeout), log);
+			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log);
 
 			Struct result = eng.getCreationUtil().createStruct();
 
@@ -83,7 +84,7 @@ public class KinesisInfo extends KinesisFunction {
 			return result;
 		}
 		catch (Exception e) {
-			throw eng.getCastUtil().toPageException(e);
+			throw CommonUtil.toPageException(e);
 		}
 	}
 
