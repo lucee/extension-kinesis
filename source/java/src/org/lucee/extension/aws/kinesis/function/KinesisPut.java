@@ -249,7 +249,7 @@ public class KinesisPut extends KinesisFunction {
 
 		@Override
 		public Struct call(boolean returnData) throws PageException {
-			return _call(null, log, collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout, returnData);
+			return _call(getCurrentPageContext(), log, collData, partitionKey, streamName, accessKeyId, secretAccessKey, host, location, timeout, returnData);
 		}
 
 	}

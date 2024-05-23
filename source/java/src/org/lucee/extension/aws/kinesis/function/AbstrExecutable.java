@@ -40,6 +40,10 @@ public abstract class AbstrExecutable implements Runnable {
 		this.listener = listener;
 	}
 
+	public PageContext getCurrentPageContext() {
+		return pc;
+	}
+
 	@Override
 	public void run() {
 		try {

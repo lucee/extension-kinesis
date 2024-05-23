@@ -36,7 +36,7 @@ public class CommonUtil {
 		Cast caster = eng.getCastUtil();
 
 		// application context
-		ApplicationContext ac = pc.getApplicationContext();
+		ApplicationContext ac = pc != null ? pc.getApplicationContext() : null;
 		if (ac != null) {
 
 			if (bif == null) {
