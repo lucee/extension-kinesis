@@ -1,3 +1,5 @@
+/target
+/temp
 /dist
 **/Test.java
 **/TestCase.java
