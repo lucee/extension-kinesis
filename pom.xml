@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://www.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
@@ -16,8 +16,25 @@
         <artifactId>kinesis-extension</artifactId>
         <bundlename>kinesis-extension</bundlename>
         <bundleversion>1.0.0.79</bundleversion>
-        <repoURL>https://github.com/lucee/extension-kinesis/</repoURL>
     </properties>
+
+    <scm>
+        <url>https://github.com/lucee/extension-kinesis</url>
+        <connection>scm:git:git://github.com/lucee/extension-kinesis.git</connection>
+        <developerConnection>scm:git:git@github.com:lucee/extension-kinesis.git</developerConnection>
+        <tag>${project.version}</tag>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <profiles>
         <profile>
@@ -47,10 +64,6 @@
                     </plugin>
                 </plugins>
             </build>
-            <properties>
-                <gpg.executable>gpg2</gpg.executable>
-                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
-            </properties>
         </profile>
     </profiles>
 
@@ -128,7 +141,7 @@
                             <artifactId>${bundlename}</artifactId>
                             <version>${bundleversion}</version>
                             <repositoryId>ossrh</repositoryId>
-                            <url>${repoURL}</url>
+                            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
                             <packaging>lex</packaging>
                         </configuration>
                     </execution>
