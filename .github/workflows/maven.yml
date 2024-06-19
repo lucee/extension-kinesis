@@ -3,10 +3,10 @@ name: Maven Build and Deploy
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   build:
@@ -22,12 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Set up Maven
-        uses: s4u/maven-settings-action@v2
-        with:
-          servers: '[{ "id": "your-repo-id", "username": "${{ secrets.MAVEN_USERNAME }}", "password": "${{ secrets.MAVEN_PASSWORD }}" }]'
-
-      - name: Configure GPG for Maven
+      - name: Set up GPG
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
           echo "default-key ${GPG_KEY_ID}" >> ~/.gnupg/gpg.conf
@@ -37,12 +32,10 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
 
-      - name: Build with Maven
-        run: mvn clean package -P release-sign-artifacts
-
-      - name: Deploy .lex file to Maven Repository
-        run: |
-          mvn deploy:deploy-file -DgroupId=org.lucee -DartifactId=kinesis-extension -Dversion=${{ github.sha }} -Dpackaging=lex -Dfile=target/kinesis-extension-${{ github.sha }}.lex -DrepositoryId=your-repo-id -Durl=https://your.repository.url/repo-path
+      - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
