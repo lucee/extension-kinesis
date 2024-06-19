@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - '**/v**'
   pull_request:
     branches:
       - master
@@ -28,4 +29,8 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            mvn -B -e -f pom.xml clean deploy -P release-sign-artifacts --settings maven-settings.xml
+          else
+            mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
+          fi

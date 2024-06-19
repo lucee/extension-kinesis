@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
-    <version>1.0.0.79</version>
+    <version>1.0.0.79-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Kinesis Extension</name>
 
@@ -15,7 +15,7 @@
         <groupId>org.lucee</groupId>
         <artifactId>kinesis-extension</artifactId>
         <bundlename>kinesis-extension</bundlename>
-        <bundleversion>1.0.0.79</bundleversion>
+        <bundleversion>1.0.0.79-SNAPSHOT</bundleversion>
     </properties>
 
     <scm>
