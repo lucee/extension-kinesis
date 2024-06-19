@@ -22,6 +22,14 @@ jobs:
       - name: Echo GITHUB_REF
         run: echo "GITHUB_REF is ${GITHUB_REF}"
 
+      - name: Determine if this is a tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "This is a tag.";
+          else
+            echo "This is not a tag.";
+          fi
+        
       - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
