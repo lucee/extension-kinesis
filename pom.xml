@@ -127,7 +127,7 @@
                             <artifactId>${bundlename}</artifactId>
                             <version>${bundleversion}</version>
                             <repositoryId>ossrh</repositoryId>
-                            <url>https://your.repository.url/repo-path</url>
+                            <url>https://github.com/lucee/extension-kinesis/</url>
                             <packaging>lex</packaging>
                         </configuration>
                     </execution>
