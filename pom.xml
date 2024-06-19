@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
-    <version>1.0.0.80</version>
+    <version>1.0.0.79-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Kinesis Extension</name>
 
@@ -137,9 +137,15 @@
                             <groupId>${project.groupId}</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
-
                             <repositoryId>ossrh</repositoryId>
-                            <url>${project.version.endsWith("SNAPSHOT") ? "https://oss.sonatype.org/content/repositories/snapshots" : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}</url>
+                            <url>
+                                <if test="${project.version.endsWith('SNAPSHOT')}">
+                                    https://oss.sonatype.org/content/repositories/snapshots
+                                </if>
+                                <else>
+                                    https://oss.sonatype.org/service/local/staging/deploy/maven2/
+                                </else>
+                            </url>
                             <packaging>lex</packaging>
                         </configuration>
                     </execution>
