@@ -1,16 +1,17 @@
-name: Build and Deploy
+name: Maven Build and Deploy
 
 on:
   push:
     branches:
       - master
       - '**/v**'
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v2
 
       - name: Set up JDK 11
@@ -19,12 +20,16 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Build with Maven
+      - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          echo "------- Maven Deploy on ${{ github.event_name }} -------";
-          mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml;
-          
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "------- Maven Deploy release on ${{ github.event_name }} -------";
+            mvn -B -e -f pom.xml clean deploy -P release-sign-artifacts --settings maven-settings.xml
+          else
+            echo "------- Maven Deploy snapshot on ${{ github.event_name }} -------";
+            mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
+          fi
