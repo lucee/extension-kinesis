@@ -162,7 +162,7 @@
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
                             <repositoryId>ossrh</repositoryId>
-                            <url>${deploy.url}</url>
+                            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
                             <packaging>lex</packaging>
                         </configuration>
                     </execution>
