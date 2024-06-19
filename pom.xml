@@ -12,42 +12,42 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <groupId>org.lucee</groupId>
+        <artifactId>kinesis-extension</artifactId>
+        <bundlename>kinesis-extension</bundlename>
         <bundleversion>1.0.0.79</bundleversion>
+
     </properties>
 
-    <profiles>
-  <profile>
-    <id>release-sign-artifacts</id>
-    <activation>
-      <property>
-        <name>performRelease</name>
-        <value>true</value>
-      </property>
-    </activation>
-    <build>
-      <plugins>
-        <!-- GPG sign -->
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-gpg-plugin</artifactId>
-          <version>3.0.1</version>
-          <executions>
-            <execution>
-              <id>sign-artifacts</id>
-              <phase>verify</phase>
-              <goals>
-                <goal>sign</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-      </plugins>
-    </build>
-    <properties>
-      <gpg.executable>gpg2</gpg.executable>
-      <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
-    </properties>
-  </profile>
+<profiles>
+    <profile>
+        <id>release-sign-artifacts</id>
+        <activation>
+            <property>
+                <name>performRelease</name>
+                <value>true</value>
+            </property>
+        </activation>
+        <build>
+            <plugins>
+              <!-- GPG sign -->
+              <plugin>
+           <groupId>org.apache.maven.plugins</groupId>
+           <artifactId>maven-gpg-plugin</artifactId>
+           <version>3.0.1</version>
+                <executions>
+                  <execution>
+                    <id>sign-artifacts</id>
+                    <phase>verify</phase>
+                    <goals>
+                      <goal>sign</goal>
+                    </goals>
+                  </execution>
+                </executions>
+              </plugin>
+            </plugins>
+        </build>
+    </profile>
 </profiles>
 
     <build>
@@ -106,7 +106,7 @@
                 </executions>
             </plugin>
 
-            <!-- Maven Deploy Plugin to deploy the .lex file -->
+            <!-- Maven Deploy Plugin to deploy the .lex file
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -119,9 +119,9 @@
                             <goal>deploy-file</goal>
                         </goals>
                         <configuration>
-                            <file>${project.build.directory}/kinesis-extension-${bundleversion}.lex</file>
-                            <groupId>com.example</groupId>
-                            <artifactId>kinesis-extension</artifactId>
+                            <file>${project.build.directory}/${bundlename}-${bundleversion}.lex</file>
+                            <groupId>${groupId}</groupId>
+                            <artifactId>${bundlename}</artifactId>
                             <version>${bundleversion}</version>
                             <repositoryId>your-repo-id</repositoryId>
                             <url>https://your.repository.url/repo-path</url>
@@ -129,7 +129,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin> -->
         </plugins>
     </build>
 </project>
