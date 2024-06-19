@@ -22,16 +22,6 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Set up GPG
-        run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
-          echo "default-key ${GPG_KEY_ID}" >> ~/.gnupg/gpg.conf
-          echo "use-agent" >> ~/.gnupg/gpg.conf
-          echo RELOADAGENT | gpg-connect-agent
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-
       - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
