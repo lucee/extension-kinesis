@@ -37,6 +37,6 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
             echo "------- Maven Deploy release on ${{ github.event_name }} -------";
-            mvn -B -e -f pom.xml clean deploy -P release-sign-artifacts --settings maven-settings.xml
+            mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
           
 
