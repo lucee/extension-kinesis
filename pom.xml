@@ -15,6 +15,41 @@
         <bundleversion>1.0.0.79</bundleversion>
     </properties>
 
+    <profiles>
+  <profile>
+    <id>release-sign-artifacts</id>
+    <activation>
+      <property>
+        <name>performRelease</name>
+        <value>true</value>
+      </property>
+    </activation>
+    <build>
+      <plugins>
+        <!-- GPG sign -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>3.0.1</version>
+          <executions>
+            <execution>
+              <id>sign-artifacts</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>sign</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </build>
+    <properties>
+      <gpg.executable>gpg2</gpg.executable>
+      <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+    </properties>
+  </profile>
+</profiles>
+
     <build>
         <plugins>
             <!-- Antrun plugin to execute the Ant build -->

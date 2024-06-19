@@ -19,6 +19,7 @@ jobs:
       - name: Set up JDK 11
         uses: actions/setup-java@v2
         with:
+          distribution: 'temurin'
           java-version: '11'
 
       - name: Set up Maven
@@ -26,11 +27,22 @@ jobs:
         with:
           servers: '[{ "id": "your-repo-id", "username": "${{ secrets.MAVEN_USERNAME }}", "password": "${{ secrets.MAVEN_PASSWORD }}" }]'
 
+      - name: Configure GPG for Maven
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
+          echo "default-key ${GPG_KEY_ID}" >> ~/.gnupg/gpg.conf
+          echo "use-agent" >> ~/.gnupg/gpg.conf
+          echo RELOADAGENT | gpg-connect-agent
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+
       - name: Build with Maven
-        run: mvn clean package
+        run: mvn clean package -P release-sign-artifacts
 
       - name: Deploy .lex file to Maven Repository
-        run: mvn deploy:deploy-file -DgroupId=org.lucee -DartifactId=kinesis-extension -Dversion=${{ github.event.inputs.version }} -Dpackaging=lex -Dfile=target/kinesis-extension-${{ github.event.inputs.version }}.lex -DrepositoryId=your-repo-id -Durl=https://your.repository.url/repo-path
+        run: |
+          mvn deploy:deploy-file -DgroupId=org.lucee -DartifactId=kinesis-extension -Dversion=${{ github.sha }} -Dpackaging=lex -Dfile=target/kinesis-extension-${{ github.sha }}.lex -DrepositoryId=your-repo-id -Durl=https://your.repository.url/repo-path
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
