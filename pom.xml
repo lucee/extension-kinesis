@@ -16,6 +16,7 @@
         <artifactId>kinesis-extension</artifactId>
         <bundlename>kinesis-extension</bundlename>
         <bundleversion>1.0.0.79</bundleversion>
+        <repoURL>https://github.com/lucee/extension-kinesis/</repoURL>
     </properties>
 
     <profiles>
@@ -127,7 +128,7 @@
                             <artifactId>${bundlename}</artifactId>
                             <version>${bundleversion}</version>
                             <repositoryId>ossrh</repositoryId>
-                            <url>https://github.com/lucee/extension-kinesis/</url>
+                            <url>${repoURL}</url>
                             <packaging>lex</packaging>
                         </configuration>
                     </execution>
