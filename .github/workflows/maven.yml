@@ -36,10 +36,7 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             echo "------- Maven Deploy release on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy -P release-sign-artifacts --settings maven-settings.xml
-          else
-            echo "------- Maven Deploy snapshot on ${{ github.event_name }} -------";
-            mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
-          fi
+          
+
