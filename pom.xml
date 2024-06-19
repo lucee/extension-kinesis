@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
-    <version>1.0.0.80</version>
+    <version>1.0.0.79-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Kinesis Extension</name>
 
@@ -12,6 +12,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <bundlename>kinesis-extension</bundlename>
     </properties>
 
     <scm>
@@ -137,9 +138,7 @@
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
                             <repositoryId>ossrh</repositoryId>
-                            <url>
-                                ${project.version.endsWith("SNAPSHOT") ? "https://oss.sonatype.org/content/repositories/snapshots" : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}
-                            </url>
+                            <url>${project.version.endsWith("-SNAPSHOT") ? "https://oss.sonatype.org/content/repositories/snapshots" : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}</url>
                             <packaging>lex</packaging>
                         </configuration>
                     </execution>
