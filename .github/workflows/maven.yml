@@ -19,24 +19,32 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
-      - name: Echo GITHUB_REF
-        run: echo "GITHUB_REF is ${GITHUB_REF}"
 
-      - name: Determine if this is a tag
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Extract version number
+        id: extract-version
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "This is a tag.";
-          else
-            echo "This is not a tag.";
-          fi
-        
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-            echo "------- Maven Deploy release on ${{ github.event_name }} -------";
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then
+            echo "------- Maven Deploy snapshot on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
-          
+          else
+            echo "------- Maven Deploy release on ${{ github.event_name }} -------";
+            mvn -B -e -f pom.xml clean deploy -DperformRelease=true --settings maven-settings.xml
+          fi
 

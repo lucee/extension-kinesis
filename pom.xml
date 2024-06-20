@@ -12,7 +12,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <bundlename>kinesis-extension</bundlename>
+        <id>D6700FE4-E168-4512-9B95E1AE7784A3A5</id>
+        <luceeCoreVersion>5.0.0.157</luceeCoreVersion>
+        <releaseType>server</releaseType>
+        <label>AWS Kinesis Resource Extension</label>
+        <description>Core Extension to integrate Kinesis into Lucee.</description>
         <release.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.url>
         <snapshot.url>https://oss.sonatype.org/content/repositories/snapshots/</snapshot.url>
     </properties>
@@ -83,21 +87,23 @@
                             <target>
                                 <ant antfile="build.xml" target="clean">
                                     <property name="bundleversion" value="${project.version}"/>
+                                    <property name="bundlename" value="${project.artifactId}"/>
+                                    <property name="filename" value="${project.artifactId}"/>
+                                    <property name="id" value="${id}"/>
+                                    <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
+                                    <property name="releaseType" value="${releaseType}"/>
+                                    <property name="label" value="${label}"/>
+                                    <property name="description" value="${description}"/>
                                 </ant>
-                                
-
-                            <condition property="isSnapshot" value="true" else="false">
-                                  <matches string="${project.version}" pattern=".*-SNAPSHOT"/>
-                              </condition>
-                              <condition property="deploy.url" value="${snapshot.url}">
-                                  <istrue value="${isSnapshot}"/>
-                              </condition>
-                              <condition property="deploy.url" value="${release.url}">
-                                  <isfalse value="${isSnapshot}"/>
-                              </condition>
-                              <property name="deploy.url" value="${deployurl}"/>
-
-
+                                <condition property="isSnapshot" value="true" else="false">
+                                    <matches string="${project.version}" pattern=".*-SNAPSHOT"/>
+                                </condition>
+                                <condition property="deploy.url" value="${snapshot.url}">
+                                    <istrue value="${isSnapshot}"/>
+                                </condition>
+                                <condition property="deploy.url" value="${release.url}">
+                                    <isfalse value="${isSnapshot}"/>
+                                </condition>
                                 <echo message="Deploying to URL: ${deploy.url}" />
                             </target>
                             <exportAntProperties>true</exportAntProperties>
@@ -162,6 +168,29 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Nexus Staging Maven Plugin to automate the release process
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                            <goal>close</goal>
+                            <goal>release</goal>
+                        </goals>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin> -->
         </plugins>
     </build>
 </project>
