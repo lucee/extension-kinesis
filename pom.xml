@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
-    <version>1.0.0.80-SNAPSHOT</version>
+    <version>1.0.0.80</version>
     <packaging>pom</packaging>
     <name>Kinesis Extension</name>
 
@@ -38,26 +38,26 @@
         </snapshotRepository>
     </distributionManagement>
 
-  <licenses>
-    <license>
-     <name>The GNU Lesser General Public License, Version 2.1</name>
-     <url>http://www.gnu.org/licenses/lgpl-2.1.txt</url>
-     <distribution>repo</distribution>
-    </license>
-  </licenses>
+    <licenses>
+        <license>
+            <name>The GNU Lesser General Public License, Version 2.1</name>
+            <url>http://www.gnu.org/licenses/lgpl-2.1.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <developers>
         <developer>
-          <id>micstriit</id>
-          <name>Michael Offner</name>
-          <email>michael@lucee.org</email>
-          <organization>Lucee Association Switzerland</organization>
-          <organizationUrl>http://lucee.org</organizationUrl>
-          <roles>
-            <role>Project-Administrator</role>
-            <role>Developer</role>
-          </roles>
-          <timezone>+1</timezone>
+            <id>micstriit</id>
+            <name>Michael Offner</name>
+            <email>michael@lucee.org</email>
+            <organization>Lucee Association Switzerland</organization>
+            <organizationUrl>http://lucee.org</organizationUrl>
+            <roles>
+                <role>Project-Administrator</role>
+                <role>Developer</role>
+            </roles>
+            <timezone>+1</timezone>
         </developer>
     </developers>
 
@@ -89,6 +89,17 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                    <plugin>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-release-plugin</artifactId>
+                      <version>2.5</version>
+                      <configuration>
+                        <autoVersionSubmodules>true</autoVersionSubmodules>
+                        <useReleaseProfile>false</useReleaseProfile>
+                        <releaseProfiles>release</releaseProfiles>
+                        <goals>deploy</goals>
+                      </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -194,28 +205,18 @@
                 </executions>
             </plugin>
 
-            <!-- Nexus Staging Maven Plugin to automate the release process
+            <!-- Nexus Staging Maven Plugin to automate the release process -->
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
                 <version>1.6.8</version>
-                <executions>
-                    <execution>
-                        <id>default-deploy</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>deploy</goal>
-                            <goal>close</goal>
-                            <goal>release</goal>
-                        </goals>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin> -->
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
