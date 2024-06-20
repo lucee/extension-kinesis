@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
-    <version>1.0.0.80</version>
+    <version>1.0.0.80-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Kinesis Extension</name>
 
@@ -16,7 +16,6 @@
         <luceeCoreVersion>5.0.0.157</luceeCoreVersion>
         <releaseType>server</releaseType>
         <label>AWS Kinesis Resource Extension</label>
-        <description>Core Extension to integrate Kinesis into Lucee.</description>
         <release.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.url>
         <snapshot.url>https://oss.sonatype.org/content/repositories/snapshots/</snapshot.url>
     </properties>
@@ -38,6 +37,32 @@
             <url>${snapshot.url}</url>
         </snapshotRepository>
     </distributionManagement>
+
+  <licenses>
+    <license>
+     <name>The GNU Lesser General Public License, Version 2.1</name>
+     <url>http://www.gnu.org/licenses/lgpl-2.1.txt</url>
+     <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+    <developers>
+        <developer>
+          <id>micstriit</id>
+          <name>Michael Offner</name>
+          <email>michael@lucee.org</email>
+          <organization>Lucee Association Switzerland</organization>
+          <organizationUrl>http://lucee.org</organizationUrl>
+          <roles>
+            <role>Project-Administrator</role>
+            <role>Developer</role>
+          </roles>
+          <timezone>+1</timezone>
+        </developer>
+    </developers>
+
+    <description>Core Extension to integrate Kinesis into Lucee.</description>
+    <url>https://github.com/lucee/extension-kinesis</url>
 
     <profiles>
         <profile>
@@ -93,7 +118,7 @@
                                     <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
                                     <property name="releaseType" value="${releaseType}"/>
                                     <property name="label" value="${label}"/>
-                                    <property name="description" value="${description}"/>
+                                    <property name="description" value="${project.description}"/>
                                 </ant>
                                 <condition property="isSnapshot" value="true" else="false">
                                     <matches string="${project.version}" pattern=".*-SNAPSHOT"/>
