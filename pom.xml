@@ -88,18 +88,18 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
-                                <configuration>
+                                <!-- <configuration>
                                     <files>
                                         <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
                                     </files>
-                                </configuration>
+                                </configuration> -->
                             </execution>
                         </executions>
                     </plugin>
                     <plugin>
                       <groupId>org.apache.maven.plugins</groupId>
                       <artifactId>maven-release-plugin</artifactId>
-                      <version>2.5</version>
+                      <version>3.0.0</version>
                       <configuration>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                         <useReleaseProfile>false</useReleaseProfile>
@@ -239,7 +239,7 @@
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.8</version>
+                <version>1.6.13</version>
                 <extensions>true</extensions>
                 <configuration>
                     <serverId>ossrh</serverId>
