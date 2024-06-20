@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
-    <version>1.0.0.83</version>
+    <version>1.0.0.83-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Kinesis Extension</name>
 
@@ -13,6 +13,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <id>D6700FE4-E168-4512-9B95E1AE7784A3A5</id>
+        <bundlename>org.lucee.kinesis.extension</bundlename>
         <luceeCoreVersion>5.0.0.157</luceeCoreVersion>
         <releaseType>server</releaseType>
         <label>AWS Kinesis Resource Extension</label>
@@ -128,7 +129,7 @@
                             <target>
                                 <ant antfile="build.xml" target="clean">
                                     <property name="bundleversion" value="${project.version}"/>
-                                    <property name="bundlename" value="${project.artifactId}"/>
+                                    <property name="bundlename" value="${bundlename}"/>
                                     <property name="filename" value="${project.artifactId}"/>
                                     <property name="id" value="${id}"/>
                                     <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
