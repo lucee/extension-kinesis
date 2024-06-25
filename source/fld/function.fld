@@ -184,6 +184,9 @@
     	</argument>
 		<return>
 			<type>struct</type>
+	        <description>
+            Returns a struct with the result when `parallel` is set to `false`. Returns `null` when `parallel` is set to `true`, as the result will be handled by the listener.
+        	</description>
 		</return>
 	</function>
 
