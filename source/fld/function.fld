@@ -198,8 +198,9 @@
     <argument>
         <name>streamName</name>
         <type>string</type>
-        <required>yes</required>
-        <description>The name of the AWS Kinesis stream from which records are to be fetched. This parameter is required to identify the target stream.</description>
+        <required>no</required>
+        <description>The name of the AWS Kinesis stream from which records are to be fetched. 
+        	If not defined the function will return info for all streams.</description>
     </argument>
     	<argument>
 			<name>accessKeyId</name>

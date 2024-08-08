@@ -19,6 +19,8 @@ import software.amazon.awssdk.services.kinesis.model.AccessDeniedException;
 import software.amazon.awssdk.services.kinesis.model.DescribeLimitsResponse;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamRequest;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamResponse;
+import software.amazon.awssdk.services.kinesis.model.ListStreamsRequest;
+import software.amazon.awssdk.services.kinesis.model.ListStreamsResponse;
 import software.amazon.awssdk.services.kinesis.model.Shard;
 
 public class KinesisInfo extends KinesisFunction {
@@ -39,53 +41,75 @@ public class KinesisInfo extends KinesisFunction {
 
 		try {
 			Log log = pc.getConfig().getLog("application");
-
 			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log);
-
-			Struct result = eng.getCreationUtil().createStruct();
-
-			// Describe the stream and print shard IDs
-			String exclusiveStartShardId = null;
-			Query qShards = eng.getCreationUtil().createQuery(new String[] { "shardId", "parentShardId", "adjacentParentShardId" }, 0, "shards");
-			result.put("shards", qShards);
-			int row;
-			do {
-				// describeStream
-				DescribeStreamRequest describeStreamRequest = DescribeStreamRequest.builder().streamName(streamName).exclusiveStartShardId(exclusiveStartShardId).build();
-				DescribeStreamResponse describeStreamResponse = client.describeStream(describeStreamRequest);
-				List<Shard> listShards = describeStreamResponse.streamDescription().shards();
-
-				for (Shard s: listShards) {
-					row = qShards.addRow();
-					qShards.setAtEL("shardId", row, s.shardId());
-					qShards.setAtEL("parentShardId", row, s.parentShardId());
-					qShards.setAtEL("adjacentParentShardId", row, s.adjacentParentShardId());
-				}
-
-				if (describeStreamResponse.streamDescription().hasMoreShards()) {
-					exclusiveStartShardId = describeStreamResponse.streamDescription().shards().get(describeStreamResponse.streamDescription().shards().size() - 1).shardId();
-				}
-				else {
-					exclusiveStartShardId = null;
-				}
+			if (!Util.isEmpty(streamName, true)) {
+				return getStream(eng, client, streamName);
 			}
-			while (exclusiveStartShardId != null);
+			else {
+				return getStreams(eng, client);
 
-			// describeLimits
-			try {
-				DescribeLimitsResponse limitsResponse = client.describeLimits();
-				result.put("shardLimit", limitsResponse.shardLimit());
-			}
-			catch (AccessDeniedException ade) {
-				result.put("shardLimit", ade.getMessage());
-				// if (throwOnAccessDenied) throw ade;
 			}
 
-			return result;
 		}
 		catch (Exception e) {
 			throw CommonUtil.toPageException(e);
 		}
+	}
+
+	private static Struct getStreams(CFMLEngine eng, KinesisClient client) throws PageException {
+		Struct result = eng.getCreationUtil().createStruct();
+
+		ListStreamsRequest listStreamsRequest = ListStreamsRequest.builder().build();
+		ListStreamsResponse listStreamsResponse = client.listStreams(listStreamsRequest);
+
+		List<String> streamNames = listStreamsResponse.streamNames();
+
+		for (String sn: streamNames) {
+			result.setEL(sn, getStream(eng, client, sn));
+		}
+		return result;
+	}
+
+	private static Struct getStream(CFMLEngine eng, KinesisClient client, String streamName) throws PageException {
+		Struct result = eng.getCreationUtil().createStruct();
+
+		// Describe the stream and print shard IDs
+		String exclusiveStartShardId = null;
+		Query qShards = eng.getCreationUtil().createQuery(new String[] { "shardId", "parentShardId", "adjacentParentShardId" }, 0, "shards");
+		result.put("shards", qShards);
+		int row;
+		do {
+			// describeStream
+			DescribeStreamRequest describeStreamRequest = DescribeStreamRequest.builder().streamName(streamName).exclusiveStartShardId(exclusiveStartShardId).build();
+			DescribeStreamResponse describeStreamResponse = client.describeStream(describeStreamRequest);
+			List<Shard> listShards = describeStreamResponse.streamDescription().shards();
+
+			for (Shard s: listShards) {
+				row = qShards.addRow();
+				qShards.setAtEL("shardId", row, s.shardId());
+				qShards.setAtEL("parentShardId", row, s.parentShardId());
+				qShards.setAtEL("adjacentParentShardId", row, s.adjacentParentShardId());
+			}
+
+			if (describeStreamResponse.streamDescription().hasMoreShards()) {
+				exclusiveStartShardId = describeStreamResponse.streamDescription().shards().get(describeStreamResponse.streamDescription().shards().size() - 1).shardId();
+			}
+			else {
+				exclusiveStartShardId = null;
+			}
+		}
+		while (exclusiveStartShardId != null);
+
+		// describeLimits
+		try {
+			DescribeLimitsResponse limitsResponse = client.describeLimits();
+			result.put("shardLimit", limitsResponse.shardLimit());
+		}
+		catch (AccessDeniedException ade) {
+			result.put("shardLimit", ade.getMessage());
+			// if (throwOnAccessDenied) throw ade;
+		}
+		return result;
 	}
 
 	@Override
@@ -93,7 +117,7 @@ public class KinesisInfo extends KinesisFunction {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		Cast cast = engine.getCastUtil();
 
-		if (args.length < 1 || args.length > 6) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisInfo", 1, 6, args.length);
+		if (args.length > 6) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisInfo", 0, 6, args.length);
 
 		// streamName
 		String streamName = cast.toString(args[0]);
