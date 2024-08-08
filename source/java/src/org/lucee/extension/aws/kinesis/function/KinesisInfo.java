@@ -120,10 +120,13 @@ public class KinesisInfo extends KinesisFunction {
 		if (args.length > 6) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisInfo", 0, 6, args.length);
 
 		// streamName
-		String streamName = cast.toString(args[0]);
-		if (Util.isEmpty(streamName, true))
-			throw engine.getExceptionUtil().createFunctionException(pc, "KinesisGet", 1, "streamName", "invalid streamName [" + streamName + "],value cannot be empty", null);
-		else streamName = streamName.trim();
+		String streamName = null;
+		if (args.length > 0) {
+			streamName = cast.toString(args[0]);
+			if (Util.isEmpty(streamName, true))
+				throw engine.getExceptionUtil().createFunctionException(pc, "KinesisGet", 1, "streamName", "invalid streamName [" + streamName + "],value cannot be empty", null);
+			else streamName = streamName.trim();
+		}
 
 		// accessKeyId
 		String accessKeyId = null;
