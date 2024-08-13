@@ -3,7 +3,6 @@ package org.lucee.extension.aws.kinesis.function;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.lucee.extension.aws.kinesis.AmazonKinesisClient;
 import org.lucee.extension.aws.kinesis.util.CommonUtil;
@@ -48,7 +47,7 @@ public class KinesisPut extends KinesisFunction {
 
 			if (executor == null) {
 				int maxThreads = CFMLEngineFactory.getInstance().getCastUtil().toIntValue(CommonUtil.getSystemPropOrEnvVar("lucee.kinesis.maxThreads", null), 10);
-				executor = Executors.newFixedThreadPool(maxThreads > 0 ? (int) maxThreads : 10);
+				executor = CommonUtil.createExecutorService(maxThreads > 0 ? (int) maxThreads : 10, pc.getConfig().getLog("application"));
 			}
 			executor.execute(new Executable(CFMLEngineFactory.getInstance(), pc, listener, pc.getConfig().getLog("application"), collData, partitionKey, streamName, accessKeyId,
 					secretAccessKey, host, location, timeout));
@@ -253,4 +252,5 @@ public class KinesisPut extends KinesisFunction {
 		}
 
 	}
+
 }

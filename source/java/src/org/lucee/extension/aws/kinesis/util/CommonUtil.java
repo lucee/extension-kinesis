@@ -1,5 +1,12 @@
 package org.lucee.extension.aws.kinesis.util;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import lucee.commons.io.log.Log;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
@@ -12,6 +19,7 @@ import lucee.runtime.util.Cast;
 
 public class CommonUtil {
 	private static BIF bif;
+	private static Integer javaMajorNumber;
 
 	public static String getSystemPropOrEnvVar(String name, String defaultValue) {
 		// env
@@ -113,5 +121,45 @@ public class CommonUtil {
 		}
 
 		return CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
+	}
+
+	public static ExecutorService createExecutorService(int maxThreads, Log log) {
+		// virtual threads
+		if (javaMajorNumber() >= 19) {
+			try {
+				MethodHandles.Lookup lookup = MethodHandles.lookup();
+				MethodType methodType = MethodType.methodType(ExecutorService.class);
+				MethodHandle methodHandle = lookup.findStatic(Executors.class, "newVirtualThreadPerTaskExecutor", methodType);
+				ExecutorService es = (ExecutorService) methodHandle.invoke();
+				if (log != null) log.log(Log.LEVEL_INFO, "Kinesis", "use virtual threads for threading");
+				return es;
+			}
+			catch (Throwable t) {
+				if (log != null) log.log(Log.LEVEL_ERROR, "Kinesis", t);
+				// in case of an exception, we simply ignore it and fall back to regular threads
+				if (t instanceof ThreadDeath) throw (ThreadDeath) t;
+			}
+
+		}
+		// regulat threads
+		ExecutorService es = Executors.newFixedThreadPool(maxThreads);
+		if (log != null) log.log(Log.LEVEL_INFO, "Kinesis", "use regular threads for threading");
+		return es;
+	}
+
+	public static int javaMajorNumber() {
+		if (javaMajorNumber == null) {
+			String version = System.getProperty("java.version");
+			int index = version.indexOf('.');
+			if (index == -1) return javaMajorNumber = 0;
+			version = version.substring(0, index);
+			try {
+				return javaMajorNumber = Integer.parseInt(version);
+			}
+			catch (NumberFormatException nfe) {
+				return javaMajorNumber = 0;
+			}
+		}
+		return javaMajorNumber;
 	}
 }
