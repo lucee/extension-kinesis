@@ -56,7 +56,7 @@ public class KinesisInfo extends KinesisFunction {
 		}
 	}
 
-	private static Struct getStreams(CFMLEngine eng, KinesisClient client) throws PageException {
+	private static Struct getStreams(CFMLEngine eng, KinesisClient client) {
 		Struct result = eng.getCreationUtil().createStruct();
 
 		ListStreamsRequest listStreamsRequest = ListStreamsRequest.builder().build();
@@ -70,7 +70,7 @@ public class KinesisInfo extends KinesisFunction {
 		return result;
 	}
 
-	private static Struct getStream(CFMLEngine eng, KinesisClient client, String streamName) throws PageException {
+	private static Struct getStream(CFMLEngine eng, KinesisClient client, String streamName) {
 		Struct result = eng.getCreationUtil().createStruct();
 
 		// Describe the stream and print shard IDs

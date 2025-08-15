@@ -82,7 +82,7 @@ public final class JSONSerializer {
 	 * @throws PageException
 	 * @throws ConverterException
 	 */
-	private void _serializeDate(Date date, StringBuilder sb) throws PageException {
+	private void _serializeDate(Date date, StringBuilder sb) {
 		sb.append(escapeJS(JSONDateFormat.format(date, null, pattern)));
 	}
 
@@ -303,7 +303,7 @@ public final class JSONSerializer {
 		// Number
 		if (object instanceof Number) {
 			if (eng != null) sb.append(eng.getCastUtil().toString(object));
-			else sb.append(((Number) object).toString());
+			else sb.append(object.toString());
 
 			return;
 		}
@@ -519,7 +519,7 @@ public final class JSONSerializer {
 		}
 	}
 
-	public static void main(String[] args) throws PageException, ConverterException {
+	public static void main(String[] args) throws PageException {
 		Map sub = new HashMap<>();
 		sub.put("str", "Sub");
 		List list = new ArrayList<>();
