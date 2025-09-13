@@ -1,4 +1,4 @@
-component extends="tests.testcases.BaseDistroKidTest"{
+component extends="tests.testcases.BaseDistroKidTest" labels="kinesis" {
 	/*********************************** BDD SUITES ***********************************/
 
 	function run( testResults, testBox ){
