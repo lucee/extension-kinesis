@@ -4,15 +4,18 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>kinesis-extension</artifactId>
-    <version>1.0.1.4</version>
+    <version>1.0.1.5</version>
     <packaging>pom</packaging>
     <name>Kinesis Extension</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <id>D6700FE4-E168-4512-9B95E1AE7784A3A5</id>
+        <image>https://raw.githubusercontent.com/lucee/extension-kinesis/master/source/images/logo.png</image>
+        <buildDate>${maven.build.timestamp}</buildDate>
         <bundlename>org.lucee.kinesis.extension</bundlename>
         <luceeCoreVersion>5.0.0.157</luceeCoreVersion>
         <releaseType>server</releaseType>
@@ -103,6 +106,30 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <flattenMode>bom</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Antrun plugin to execute the Ant build -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
