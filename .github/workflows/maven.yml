@@ -51,6 +51,25 @@ jobs:
     strategy:
       matrix:
         lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS_JAKARTA) }}
+
+    services:
+      localstack:
+        image: localstack/localstack:3.8.1
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: kinesis
+          DEFAULT_REGION: us-east-1
+          EAGER_SERVICE_LOADING: 1
+          # stream-name:shard-count — used by ConcurrentPutConnectionPool.cfc
+          KINESIS_INITIALIZE_STREAMS: kinesis-pool-test:1
+        options: >-
+          --health-cmd "curl -f http://localhost:4566/_localstack/health || exit 1"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 15
+          --health-start-period 30s
+
     steps:
       - uses: actions/checkout@v4
 
@@ -79,6 +98,48 @@ jobs:
           repository: lucee/lucee
           path: lucee
 
+      - name: Install AWS CLI
+        run: |
+          if ! command -v aws >/dev/null 2>&1; then
+            curl -sS "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -q awscliv2.zip
+            sudo ./aws/install --update
+          fi
+          aws --version
+
+      - name: Wait for LocalStack Kinesis stream
+        run: |
+          echo "Waiting for LocalStack..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4566/_localstack/health >/dev/null; then
+              echo "LocalStack health OK"
+              break
+            fi
+            sleep 2
+          done
+          # Ensure stream exists even if KINESIS_INITIALIZE_STREAMS was ignored
+          aws --endpoint-url=http://localhost:4566 kinesis create-stream \
+            --stream-name kinesis-pool-test \
+            --shard-count 1 \
+            --region us-east-1 || true
+          for i in $(seq 1 30); do
+            STATUS=$(aws --endpoint-url=http://localhost:4566 kinesis describe-stream \
+              --stream-name kinesis-pool-test \
+              --region us-east-1 \
+              --query 'StreamDescription.StreamStatus' \
+              --output text 2>/dev/null || echo "MISSING")
+            echo "stream status: $STATUS"
+            if [ "$STATUS" = "ACTIVE" ]; then
+              break
+            fi
+            sleep 2
+          done
+          aws --endpoint-url=http://localhost:4566 kinesis list-streams --region us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
+
       - name: Run Lucee Test Suite
         uses: lucee/script-runner@main
         with:
@@ -90,6 +151,16 @@ jobs:
         env:
           testLabels: kinesis
           testAdditional: ${{ github.workspace }}/tests
+          LUCEE_KINESIS_ACCESSKEYID: test
+          LUCEE_KINESIS_SECRETACCESSKEY: test
+          LUCEE_KINESIS_HOST: localhost:4566
+          LUCEE_KINESIS_REGION: us-east-1
+          LUCEE_KINESIS_TEST_STREAM: kinesis-pool-test
+          LUCEE_KINESIS_POOL_MAXCONNECTIONS: 128
+          LUCEE_KINESIS_POOL_CONNECTIONTIMEOUT: 10000
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
 
   deploy:
     runs-on: ubuntu-latest

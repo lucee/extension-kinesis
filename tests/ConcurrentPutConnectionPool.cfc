@@ -5,36 +5,57 @@
  * AWS SDK default pool size (50), so a misconfigured / unconfigured pool would
  * surface ConnectionPoolTimeoutException ("Timeout waiting for connection from pool").
  *
- * Skipped when KinesisValidate() fails (no credentials / endpoint in CI).
- * See also HttpConnectionPoolSettings.cfc for pool-config coverage that runs without AWS.
+ * Skipped only when KinesisValidate() fails (no credentials / endpoint).
+ * CI provides LocalStack + LUCEE_KINESIS_* so these specs run there.
+ * See also HttpConnectionPoolSettings.cfc for pool-config coverage without PutRecord.
  */
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
 
     variables.parallelCount = 55;
-    variables.streamName = "kds-dk-logs-dev";
+    variables.streamName = "kinesis-pool-test";
     variables.notSupported = true;
 
     function beforeAll() {
+        var envStream = server.system.environment.LUCEE_KINESIS_TEST_STREAM ?: "";
+        if (len(trim(envStream))) {
+            variables.streamName = trim(envStream);
+        }
+
         try {
             KinesisValidate();
             variables.notSupported = false;
         }
         catch (any e) {
             variables.notSupported = true;
+            systemOutput("ConcurrentPutConnectionPool skipped: KinesisValidate failed: " & (e.message ?: e.toString()), true);
+            return;
         }
 
-        if (!variables.notSupported) {
-            try {
-                kinesisInfo(variables.streamName);
+        // Prefer configured test stream; fall back to legacy DistroKid stream names
+        if (!streamExists(variables.streamName)) {
+            if (streamExists("kds-dk-logs-localdev")) {
+                variables.streamName = "kds-dk-logs-localdev";
             }
-            catch (any e1) {
-                try {
-                    kinesisInfo("kds-dk-logs-localdev");
-                    variables.streamName = "kds-dk-logs-localdev";
-                }
-                catch (any e2) {
-                }
+            else if (streamExists("kds-dk-logs-dev")) {
+                variables.streamName = "kds-dk-logs-dev";
             }
+            else {
+                variables.notSupported = true;
+                systemOutput(
+                    "ConcurrentPutConnectionPool skipped: no usable stream (tried #variables.streamName#, kds-dk-logs-localdev, kds-dk-logs-dev)",
+                    true
+                );
+            }
+        }
+    }
+
+    private boolean function streamExists(required string name) {
+        try {
+            kinesisInfo(arguments.name);
+            return true;
+        }
+        catch (any e) {
+            return false;
         }
     }
 
