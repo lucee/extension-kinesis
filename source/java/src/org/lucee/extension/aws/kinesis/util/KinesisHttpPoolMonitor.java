@@ -2,8 +2,6 @@ package org.lucee.extension.aws.kinesis.util;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.http.conn.ConnectionPoolTimeoutException;
-
 import lucee.commons.io.log.Log;
 import software.amazon.awssdk.core.interceptor.Context;
 import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
@@ -72,11 +70,18 @@ public final class KinesisHttpPoolMonitor implements ExecutionInterceptor {
 		}
 	}
 
+	/**
+	 * Detects Apache connection-pool timeouts without referencing
+	 * {@code ConnectionPoolTimeoutException} by type — that class is not always
+	 * visible to this OSGi bundle (NoClassDefFoundError on instanceof).
+	 */
 	public static boolean isPoolTimeout(Throwable e) {
 		while (e != null) {
-			if (e instanceof ConnectionPoolTimeoutException) return true;
+			String name = e.getClass().getName();
+			if ("org.apache.http.conn.ConnectionPoolTimeoutException".equals(name)) return true;
 			String msg = e.getMessage();
 			if (msg != null && msg.indexOf("Timeout waiting for connection from pool") != -1) return true;
+			if (msg != null && msg.indexOf("Acquire operation took longer than the configured maximum time") != -1) return true;
 			e = e.getCause();
 		}
 		return false;
