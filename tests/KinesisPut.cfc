@@ -93,7 +93,58 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 expect(structKeyExists(outcome.result, "sequenceNumber")).toBeTrue();
             });
 
+            it(title = "queues 10 parallel=true puts and all listeners complete", body = function() {
+                var completed = createObject("java", "java.util.concurrent.ConcurrentHashMap").init();
+                var total = 10;
+
+                for (var i = 1; i <= total; i++) {
+                    kinesisPut(
+                        data = variables.localstack.sampleRecord("put-async-batch"),
+                        partitionKey = "kinesis-put-async-batch-" & i,
+                        streamName = variables.cfg.streamName,
+                        parallel = true,
+                        listener = asyncMapListener(completed, toString(i)),
+                        accessKeyId = variables.cfg.accessKeyId,
+                        secretAccessKey = variables.cfg.secretAccessKey,
+                        host = variables.cfg.host,
+                        location = variables.cfg.region
+                    );
+                }
+
+                var waits = 600;
+                while ((--waits) > 0) {
+                    if (completed.size() >= total) {
+                        break;
+                    }
+                    sleep(50);
+                }
+
+                expect(completed.size()).toBe(
+                    total,
+                    "expected #total# async listeners; got #completed.size()#"
+                );
+                for (var i = 1; i <= total; i++) {
+                    expect(completed.get(toString(i))).toBe("ok");
+                }
+            });
+
         });
+    }
+
+    /**
+     * Listener writes completion into a ConcurrentHashMap (avoids application-scope races).
+     */
+    private struct function asyncMapListener(required any map, required string id) {
+        var m = arguments.map;
+        var putId = arguments.id;
+        return {
+            onSuccess: function(result) {
+                m.put(putId, "ok");
+            },
+            onError: function(error) {
+                m.put(putId, "err");
+            }
+        };
     }
 
 }
