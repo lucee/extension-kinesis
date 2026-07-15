@@ -15,7 +15,13 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
     variables.streamName = "kinesis-pool-test";
 
     function beforeAll() {
-        requireKinesis();
+        var cfg = new KinesisLocalStack().requireReady("ConcurrentPutConnectionPool");
+        variables.kinesisAccessKeyId = cfg.accessKeyId;
+        variables.kinesisSecretAccessKey = cfg.secretAccessKey;
+        variables.kinesisHost = cfg.host;
+        variables.kinesisRegion = cfg.region;
+        variables.streamName = cfg.streamName;
+        variables.localstack = new KinesisLocalStack();
     }
 
     function run(testResults, testBox) {
@@ -74,96 +80,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
     }
 
     /**
-     * Fail hard if LocalStack / credentials / stream are missing. Do not skip.
-     */
-    private void function requireKinesis() {
-        variables.kinesisAccessKeyId = envOr("LUCEE_KINESIS_ACCESSKEYID", envOr("AWS_ACCESS_KEY_ID", "test"));
-        variables.kinesisSecretAccessKey = envOr("LUCEE_KINESIS_SECRETACCESSKEY", envOr("AWS_SECRET_ACCESS_KEY", "test"));
-        variables.kinesisHost = envOr("LUCEE_KINESIS_HOST", "");
-        variables.kinesisRegion = envOr("LUCEE_KINESIS_REGION", "us-east-1");
-        variables.streamName = envOr("LUCEE_KINESIS_TEST_STREAM", "kinesis-pool-test");
-
-        if (!len(variables.kinesisHost)) {
-            throw(
-                type = "org.lucee.extension.aws.kinesis.test.MissingKinesisHost",
-                message = "LUCEE_KINESIS_HOST is required (e.g. localhost:4566 for LocalStack). Concurrent PutRecord pool tests must not skip."
-            );
-        }
-
-        var kinesisApp = {
-            accessKeyId: variables.kinesisAccessKeyId,
-            secretAccessKey: variables.kinesisSecretAccessKey,
-            host: variables.kinesisHost,
-            region: variables.kinesisRegion,
-            pool: {
-                maxConnections: 128,
-                connectionTimeout: 10000
-            }
-        };
-        application action="update" kinesis=kinesisApp;
-
-        try {
-            KinesisValidate(
-                accessKeyId = variables.kinesisAccessKeyId,
-                secretAccessKey = variables.kinesisSecretAccessKey,
-                host = variables.kinesisHost,
-                location = variables.kinesisRegion
-            );
-        }
-        catch (any e) {
-            throw(
-                type = "org.lucee.extension.aws.kinesis.test.KinesisUnavailable",
-                message = "KinesisValidate failed for ConcurrentPutConnectionPool (host=#variables.kinesisHost#). "
-                    & (e.message ?: e.toString()),
-                detail = e.detail ?: ""
-            );
-        }
-
-        if (!streamExists(variables.streamName)) {
-            throw(
-                type = "org.lucee.extension.aws.kinesis.test.MissingKinesisStream",
-                message = "Required stream '#variables.streamName#' not found on #variables.kinesisHost#. "
-                    & "Create it in CI (KINESIS_INITIALIZE_STREAMS / aws create-stream) or set LUCEE_KINESIS_TEST_STREAM."
-            );
-        }
-
-        systemOutput(
-            "ConcurrentPutConnectionPool: host=" & variables.kinesisHost
-                & " stream=" & variables.streamName
-                & " region=" & variables.kinesisRegion,
-            true
-        );
-    }
-
-    private string function envOr(required string name, required string defaultValue) {
-        var env = server.system.environment ?: {};
-        if (structKeyExists(env, arguments.name) && len(trim(env[arguments.name]))) {
-            return trim(env[arguments.name]);
-        }
-        var prop = createObject("java", "java.lang.System").getProperty(arguments.name);
-        if (!isNull(prop) && len(trim(prop))) {
-            return trim(prop);
-        }
-        return arguments.defaultValue;
-    }
-
-    private boolean function streamExists(required string name) {
-        try {
-            kinesisInfo(
-                streamName = arguments.name,
-                accessKeyId = variables.kinesisAccessKeyId,
-                secretAccessKey = variables.kinesisSecretAccessKey,
-                host = variables.kinesisHost,
-                location = variables.kinesisRegion
-            );
-            return true;
-        }
-        catch (any e) {
-            return false;
-        }
-    }
-
-    /**
      * Spawns parallelCount CF threads each calling sync kinesisPut (parallel=false).
      * Sync puts hold an HTTP connection for the duration of PutRecord, which is what
      * saturates the Apache connection pool when concurrency exceeds maxConnections.
@@ -174,7 +90,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
         string waveId = createUUID()
     ) {
         var names = [];
-        var record = createRecord();
+        var record = variables.localstack.sampleRecord("http-pool-concurrency");
 
         for (var i = 1; i <= arguments.parallelCount; i++) {
             var threadName = "kinesis-pool-#arguments.waveId#-#i#";
@@ -255,7 +171,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
         required string streamName
     ) {
         var doneKeys = [];
-        var record = createRecord();
+        var record = variables.localstack.sampleRecord("http-pool-concurrency");
         var waveId = createUUID();
 
         for (var i = 1; i <= arguments.parallelCount; i++) {
@@ -386,24 +302,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
         return findNoCase("Timeout waiting for connection from pool", msg)
             || findNoCase("ConnectionPoolTimeoutException", msg)
             || findNoCase("Acquire operation took longer than the configured maximum time", msg);
-    }
-
-    private struct function createRecord() {
-        return {
-            "source": "kinesis-http-pool-test",
-            "type": "pool-exhaustion-test",
-            "detail": {
-                "metadata": {
-                    "key": createUUID(),
-                    "ts": dateTimeFormat(now(), "iso8601"),
-                    "datehour": dateTimeFormat(now(), "yyyy-mm-dd HH:nn:ss")
-                },
-                "data": {
-                    "action": "http-pool-concurrency",
-                    "notes": "connection pool concurrency probe"
-                }
-            }
-        };
     }
 
 }
