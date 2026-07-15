@@ -119,12 +119,11 @@ public class KinesisInfo extends KinesisFunction {
 
 		if (args.length > 6) throw engine.getExceptionUtil().createFunctionException(pc, "KinesisInfo", 0, 6, args.length);
 
-		// streamName
+		// streamName — optional; empty/null lists all streams (see function.fld)
 		String streamName = null;
 		if (args.length > 0) {
 			streamName = cast.toString(args[0]);
-			if (Util.isEmpty(streamName, true))
-				throw engine.getExceptionUtil().createFunctionException(pc, "KinesisGet", 1, "streamName", "invalid streamName [" + streamName + "],value cannot be empty", null);
+			if (Util.isEmpty(streamName, true)) streamName = null;
 			else streamName = streamName.trim();
 		}
 

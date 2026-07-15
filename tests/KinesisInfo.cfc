@@ -42,6 +42,18 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 expect(all[variables.cfg.streamName].shards.recordCount).toBeGT(0);
             });
 
+            it(title = "lists streams when streamName is an empty string", body = function() {
+                var all = kinesisInfo(
+                    streamName = "",
+                    accessKeyId = variables.cfg.accessKeyId,
+                    secretAccessKey = variables.cfg.secretAccessKey,
+                    host = variables.cfg.host,
+                    location = variables.cfg.region
+                );
+
+                expect(structKeyExists(all, variables.cfg.streamName)).toBeTrue();
+            });
+
             it(title = "throws for an unknown stream name", body = function() {
                 expect(function() {
                     kinesisInfo(
