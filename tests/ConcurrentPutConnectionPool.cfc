@@ -243,29 +243,28 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 thread.error = javacast("null", "");
 
                 try {
-                    var putArgs = {
-                        data: record,
-                        partitionKey: "kinesis-pool-" & putIndex,
-                        streamName: streamName,
-                        parallel: parallelFlag,
-                        accessKeyId: accessKeyId,
-                        secretAccessKey: secretAccessKey,
-                        host: host,
-                        location: region
-                    };
-
+                    // Java BIF: no argumentCollection — pass named args explicitly
                     if (parallelFlag) {
                         var doneKey = "kinesis-pool-done-" & createUUID();
-                        putArgs.listener = {
-                            onSuccess: function(result) {
-                                application[doneKey] = { ok: true };
-                            },
-                            onError: function(error) {
-                                application[doneKey] = { ok: false, error: error };
-                            }
-                        };
 
-                        kinesisPut(argumentCollection = putArgs);
+                        kinesisPut(
+                            data = record,
+                            partitionKey = "kinesis-pool-" & putIndex,
+                            streamName = streamName,
+                            parallel = true,
+                            listener = {
+                                onSuccess: function(result) {
+                                    application[doneKey] = { ok: true };
+                                },
+                                onError: function(error) {
+                                    application[doneKey] = { ok: false, error: error };
+                                }
+                            },
+                            accessKeyId = accessKeyId,
+                            secretAccessKey = secretAccessKey,
+                            host = host,
+                            location = region
+                        );
 
                         var waits = 200;
                         while ((--waits) > 0) {
@@ -289,8 +288,16 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                         thread.success = true;
                     }
                     else {
-                        putArgs.parallel = false;
-                        var rsp = kinesisPut(argumentCollection = putArgs);
+                        var rsp = kinesisPut(
+                            data = record,
+                            partitionKey = "kinesis-pool-" & putIndex,
+                            streamName = streamName,
+                            parallel = false,
+                            accessKeyId = accessKeyId,
+                            secretAccessKey = secretAccessKey,
+                            host = host,
+                            location = region
+                        );
                         if (!structKeyExists(rsp, "sequenceNumber")) {
                             throw(message = "kinesisPut response missing sequenceNumber", detail = serializeJSON(rsp));
                         }
