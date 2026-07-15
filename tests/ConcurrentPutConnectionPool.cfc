@@ -26,8 +26,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 it(title = "55 concurrent sync kinesisPut calls do not hit connection pool timeout", body = function() {
                     var result = runParallelPuts(
                         parallelCount = variables.parallelCount,
-                        streamName = variables.streamName,
-                        parallelFlag = false
+                        streamName = variables.streamName
                     );
 
                     assertNoPoolTimeout(result, "sync kinesisPut");
@@ -38,7 +37,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                     var wave1 = runParallelPuts(
                         parallelCount = variables.parallelCount,
                         streamName = variables.streamName,
-                        parallelFlag = false,
                         waveId = createUUID()
                     );
                     assertNoPoolTimeout(wave1, "sync kinesisPut wave 1");
@@ -47,7 +45,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                     var wave2 = runParallelPuts(
                         parallelCount = variables.parallelCount,
                         streamName = variables.streamName,
-                        parallelFlag = false,
                         waveId = createUUID()
                     );
                     assertNoPoolTimeout(wave2, "sync kinesisPut wave 2");
@@ -55,10 +52,13 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 });
 
                 it(title = "55 concurrent kinesisPut(parallel=true) do not hit connection pool timeout", body = function() {
-                    var result = runParallelPuts(
+                    // Do not nest CF threads around parallel=true: that queues N jobs onto the
+                    // extension's fixed executor (default maxThreads=10) while each CF thread
+                    // waits only ~10s. Under Lucee 7 load this races. Fire async puts from the
+                    // request thread and wait for all listeners (same pattern as KenesisTest).
+                    var result = runAsyncPuts(
                         parallelCount = variables.parallelCount,
-                        streamName = variables.streamName,
-                        parallelFlag = true
+                        streamName = variables.streamName
                     );
 
                     assertNoPoolTimeout(result, "kinesisPut parallel=true");
@@ -164,14 +164,13 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
     }
 
     /**
-     * Spawns parallelCount CF threads each calling kinesisPut (CFML frontend).
-     * Sync puts (parallelFlag=false) hold an HTTP connection for the duration of PutRecord,
-     * which is what saturates the Apache connection pool when concurrency exceeds maxConnections.
+     * Spawns parallelCount CF threads each calling sync kinesisPut (parallel=false).
+     * Sync puts hold an HTTP connection for the duration of PutRecord, which is what
+     * saturates the Apache connection pool when concurrency exceeds maxConnections.
      */
     private struct function runParallelPuts(
         required numeric parallelCount,
         required string streamName,
-        boolean parallelFlag = false,
         string waveId = createUUID()
     ) {
         var names = [];
@@ -185,7 +184,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 name=threadName
                 action="run"
                 streamName=arguments.streamName
-                parallelFlag=arguments.parallelFlag
                 record=duplicate(record)
                 putIndex=i
                 accessKeyId=variables.kinesisAccessKeyId
@@ -197,66 +195,20 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 thread.error = javacast("null", "");
 
                 try {
-                    // Java BIF: no argumentCollection — pass named args explicitly
-                    if (parallelFlag) {
-                        var doneKey = "kinesis-pool-done-" & createUUID();
-
-                        kinesisPut(
-                            data = record,
-                            partitionKey = "kinesis-pool-" & putIndex,
-                            streamName = streamName,
-                            parallel = true,
-                            listener = {
-                                onSuccess: function(result) {
-                                    application[doneKey] = { ok: true };
-                                },
-                                onError: function(error) {
-                                    application[doneKey] = { ok: false, error: error };
-                                }
-                            },
-                            accessKeyId = accessKeyId,
-                            secretAccessKey = secretAccessKey,
-                            host = host,
-                            location = region
-                        );
-
-                        var waits = 200;
-                        while ((--waits) > 0) {
-                            sleep(50);
-                            if (structKeyExists(application, doneKey)) {
-                                break;
-                            }
-                        }
-
-                        if (!structKeyExists(application, doneKey)) {
-                            throw(message = "parallel kinesisPut did not complete in time", detail = "putIndex=#putIndex#");
-                        }
-
-                        var outcome = application[doneKey];
-                        structDelete(application, doneKey);
-
-                        if (!(outcome.ok ?: false)) {
-                            throw(outcome.error ?: { message: "parallel kinesisPut onError without detail" });
-                        }
-
-                        thread.success = true;
+                    var rsp = kinesisPut(
+                        data = record,
+                        partitionKey = "kinesis-pool-" & putIndex,
+                        streamName = streamName,
+                        parallel = false,
+                        accessKeyId = accessKeyId,
+                        secretAccessKey = secretAccessKey,
+                        host = host,
+                        location = region
+                    );
+                    if (!structKeyExists(rsp, "sequenceNumber")) {
+                        throw(message = "kinesisPut response missing sequenceNumber", detail = serializeJSON(rsp));
                     }
-                    else {
-                        var rsp = kinesisPut(
-                            data = record,
-                            partitionKey = "kinesis-pool-" & putIndex,
-                            streamName = streamName,
-                            parallel = false,
-                            accessKeyId = accessKeyId,
-                            secretAccessKey = secretAccessKey,
-                            host = host,
-                            location = region
-                        );
-                        if (!structKeyExists(rsp, "sequenceNumber")) {
-                            throw(message = "kinesisPut response missing sequenceNumber", detail = serializeJSON(rsp));
-                        }
-                        thread.success = true;
-                    }
+                    thread.success = true;
                 }
                 catch (any err) {
                     thread.success = false;
@@ -289,8 +241,98 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
             exceptions: exceptions,
             successCount: successCount,
             parallelCount: arguments.parallelCount,
-            streamName: arguments.streamName,
-            parallelFlag: arguments.parallelFlag
+            streamName: arguments.streamName
+        };
+    }
+
+    /**
+     * Queues parallelCount kinesisPut(parallel=true) calls from the request thread,
+     * then waits for all onSuccess/onError listeners. Avoids nesting CF threads around
+     * the extension's async executor (which defaults to maxThreads=10 on Java 11).
+     */
+    private struct function runAsyncPuts(
+        required numeric parallelCount,
+        required string streamName
+    ) {
+        var doneKeys = [];
+        var record = createRecord();
+        var waveId = createUUID();
+
+        for (var i = 1; i <= arguments.parallelCount; i++) {
+            var doneKey = "kinesis-pool-async-" & waveId & "-" & i;
+            arrayAppend(doneKeys, doneKey);
+
+            kinesisPut(
+                data = duplicate(record),
+                partitionKey = "kinesis-pool-async-" & i,
+                streamName = arguments.streamName,
+                parallel = true,
+                listener = createAsyncDoneListener(doneKey),
+                accessKeyId = variables.kinesisAccessKeyId,
+                secretAccessKey = variables.kinesisSecretAccessKey,
+                host = variables.kinesisHost,
+                location = variables.kinesisRegion
+            );
+        }
+
+        // Default executor is 10 threads; allow plenty of time for the queue to drain.
+        var waits = 1200;
+        while ((--waits) > 0) {
+            var pending = 0;
+            for (var key in doneKeys) {
+                if (!structKeyExists(application, key)) {
+                    pending++;
+                }
+            }
+            if (pending == 0) {
+                break;
+            }
+            sleep(50);
+        }
+
+        var exceptions = [];
+        var successCount = 0;
+        for (var key in doneKeys) {
+            if (!structKeyExists(application, key)) {
+                arrayAppend(exceptions, {
+                    message: "parallel kinesisPut did not complete in time",
+                    detail: "doneKey=#key#"
+                });
+                continue;
+            }
+            var outcome = application[key];
+            structDelete(application, key);
+            if (outcome.ok ?: false) {
+                successCount++;
+            }
+            else {
+                arrayAppend(exceptions, outcome.error ?: {
+                    message: "parallel kinesisPut onError without detail",
+                    detail: "doneKey=#key#"
+                });
+            }
+        }
+
+        return {
+            exceptions: exceptions,
+            successCount: successCount,
+            parallelCount: arguments.parallelCount,
+            streamName: arguments.streamName
+        };
+    }
+
+    /**
+     * Bind doneKey as a function argument so async listeners do not all close over the loop var.
+     */
+    private struct function createAsyncDoneListener(required string doneKey) {
+        var key = arguments.doneKey;
+        return {
+            onSuccess: function(result) {
+                application[key] = { ok: true };
+            },
+            onError: function(error) {
+                application[key] = { ok: false, error: error };
+            }
         };
     }
 
