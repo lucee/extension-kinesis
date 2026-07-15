@@ -67,7 +67,7 @@ public class KinesisGet extends KinesisFunction {
 		Log log = pc.getConfig().getLog("application");
 		try {
 
-			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log);
+			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log, CommonUtil.toHttpPoolSettings(pc));
 
 			// validate maxrows
 			int mr = Integer.MAX_VALUE;

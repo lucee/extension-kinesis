@@ -41,7 +41,7 @@ public class KinesisInfo extends KinesisFunction {
 
 		try {
 			Log log = pc.getConfig().getLog("application");
-			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log);
+			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log, CommonUtil.toHttpPoolSettings(pc));
 			if (!Util.isEmpty(streamName, true)) {
 				return getStream(eng, client, streamName);
 			}

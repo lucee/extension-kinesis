@@ -6,6 +6,7 @@ public class KinesisProps {
 	private String accessKeyId;
 	private String host;
 	private String region;
+	private KinesisHttpPoolSettings httpPool;
 
 	public void setSecretAccessKey(String secretAccessKey) {
 		this.secretAccessKey = secretAccessKey;
@@ -23,6 +24,10 @@ public class KinesisProps {
 		this.region = region;
 	}
 
+	public void setHttpPool(KinesisHttpPoolSettings httpPool) {
+		this.httpPool = httpPool;
+	}
+
 	public String getSecretAccessKey() {
 		return secretAccessKey;
 	}
@@ -37,6 +42,10 @@ public class KinesisProps {
 
 	public String getRegion() {
 		return region;
+	}
+
+	public KinesisHttpPoolSettings getHttpPool() {
+		return httpPool;
 	}
 
 }

@@ -72,7 +72,7 @@ public class KinesisValidate extends KinesisFunction {
 		CFMLEngine eng = CFMLEngineFactory.getInstance();
 		Log log = pc.getConfig().getLog("application");
 		try {
-			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log);
+			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pc, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log, CommonUtil.toHttpPoolSettings(pc));
 
 			// Perform the request
 			client.listStreams(ListStreamsRequest.builder().limit(1).build());

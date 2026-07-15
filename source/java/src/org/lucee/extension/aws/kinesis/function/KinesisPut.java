@@ -67,7 +67,7 @@ public class KinesisPut extends KinesisFunction {
 		if (eng.getStringUtil().isEmpty(location, true)) location = null;
 
 		try {
-			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pcMayNull, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log);
+			KinesisClient client = AmazonKinesisClient.get(CommonUtil.toKinesisProps(pcMayNull, accessKeyId, secretAccessKey, host, location), toTimeout(timeout), log, CommonUtil.toHttpPoolSettings(pcMayNull));
 			if (dec.isArray(collData)) {
 				Object[] arr = caster.toNativeArray(collData);
 				List<PutRecordsRequestEntry> recordsList = new ArrayList<>();

@@ -43,6 +43,8 @@ public class CommonUtil {
 		CFMLEngine eng = CFMLEngineFactory.getInstance();
 		Cast caster = eng.getCastUtil();
 
+		Struct kinesisApp = null;
+
 		// application context
 		ApplicationContext ac = pc != null ? pc.getApplicationContext() : null;
 		if (ac != null) {
@@ -58,23 +60,26 @@ public class CommonUtil {
 
 			Struct sct = caster.toStruct(bif.invoke(pc, new Object[] { Boolean.TRUE }), null);
 			if (sct != null) {
-				sct = caster.toStruct(sct.get("kinesis", null), null);
-				if (sct != null) {
-					if (Util.isEmpty(accessKeyId, true)) accessKeyId = caster.toString(sct.get("accesskeyid", null), null);
-					if (Util.isEmpty(accessKeyId, true)) accessKeyId = caster.toString(sct.get("accesskey", null), null);
+				kinesisApp = caster.toStruct(sct.get("kinesis", null), null);
+				if (kinesisApp != null) {
+					if (Util.isEmpty(accessKeyId, true)) accessKeyId = caster.toString(kinesisApp.get("accesskeyid", null), null);
+					if (Util.isEmpty(accessKeyId, true)) accessKeyId = caster.toString(kinesisApp.get("accesskey", null), null);
 
-					if (Util.isEmpty(secretAccessKey, true)) secretAccessKey = caster.toString(sct.get("secretaccesskey", null), null);
-					if (Util.isEmpty(secretAccessKey, true)) secretAccessKey = caster.toString(sct.get("secretkey", null), null);
+					if (Util.isEmpty(secretAccessKey, true)) secretAccessKey = caster.toString(kinesisApp.get("secretaccesskey", null), null);
+					if (Util.isEmpty(secretAccessKey, true)) secretAccessKey = caster.toString(kinesisApp.get("secretkey", null), null);
 
-					if (Util.isEmpty(host, true)) host = caster.toString(sct.get("host", null), null);
-					if (Util.isEmpty(host, true)) host = caster.toString(sct.get("server", null), null);
+					if (Util.isEmpty(host, true)) host = caster.toString(kinesisApp.get("host", null), null);
+					if (Util.isEmpty(host, true)) host = caster.toString(kinesisApp.get("server", null), null);
 
-					if (Util.isEmpty(region, true)) region = caster.toString(sct.get("region", null), null);
-					if (Util.isEmpty(region, true)) region = caster.toString(sct.get("location", null), null);
+					if (Util.isEmpty(region, true)) region = caster.toString(kinesisApp.get("region", null), null);
+					if (Util.isEmpty(region, true)) region = caster.toString(kinesisApp.get("location", null), null);
 				}
 			}
 
 		}
+
+		Struct poolStruct = kinesisApp == null ? null : caster.toStruct(kinesisApp.get("pool", null), null);
+		KinesisHttpPoolSettings httpPool = KinesisHttpPoolSettings.load(eng, poolStruct);
 
 		// env var/sys prop
 		if (Util.isEmpty(accessKeyId, true)) accessKeyId = getSystemPropOrEnvVar("lucee.kinesis.accesskeyid", null);
@@ -100,10 +105,38 @@ public class CommonUtil {
 			if (!Util.isEmpty(region, true)) {
 				props.setRegion(region);
 			}
+			props.setHttpPool(httpPool);
 			return props;
 		}
 
 		return null;
+	}
+
+	/**
+	 * Resolves HTTP pool settings from Application.cfc this.kinesis.pool and env/system properties.
+	 */
+	public static KinesisHttpPoolSettings toHttpPoolSettings(PageContext pc) throws PageException {
+		CFMLEngine eng = CFMLEngineFactory.getInstance();
+		Cast caster = eng.getCastUtil();
+		Struct poolStruct = null;
+
+		ApplicationContext ac = pc != null ? pc.getApplicationContext() : null;
+		if (ac != null) {
+			if (bif == null) {
+				try {
+					bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetApplicationSettings");
+				}
+				catch (Exception e) {
+					throw caster.toPageException(e);
+				}
+			}
+			Struct sct = caster.toStruct(bif.invoke(pc, new Object[] { Boolean.TRUE }), null);
+			if (sct != null) {
+				Struct kinesisApp = caster.toStruct(sct.get("kinesis", null), null);
+				if (kinesisApp != null) poolStruct = caster.toStruct(kinesisApp.get("pool", null), null);
+			}
+		}
+		return KinesisHttpPoolSettings.load(eng, poolStruct);
 	}
 
 	public static PageException toPageException(Exception e) {

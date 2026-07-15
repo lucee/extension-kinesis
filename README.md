@@ -1,4 +1,3 @@
-
 # Lucee AWS Kinesis Extension - Function Examples
 
 ## Credential Configuration
@@ -6,12 +5,54 @@
 The client attempts to find AWS credentials as follows:
 
 1. **Explicit Credentials**: If `accessKeyId` and `secretAccessKey` are provided via function arguments, these are used.
-2. **Default Credential Provider Chain**: In absence of explicit credentials, the SDK searches in:
+2. **Application.cfc**: `this.kinesis.accessKeyId`, `this.kinesis.secretAccessKey`, `this.kinesis.host`, `this.kinesis.region`
+3. **Environment / system properties**: `LUCEE_KINESIS_ACCESSKEYID`, `LUCEE_KINESIS_SECRETACCESSKEY`, `LUCEE_KINESIS_HOST`, `LUCEE_KINESIS_REGION` (or `lucee.kinesis.*`)
+4. **Default Credential Provider Chain**: In absence of explicit credentials, the SDK searches in:
    - Environment Variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
    - Java System Properties (`aws.accessKeyId`, `aws.secretKey`)
    - Credential profiles file (`~/.aws/credentials`)
    - ECS Container Credentials (for applications running on Amazon ECS)
    - EC2 Instance Profile Credentials (for applications running on Amazon EC2)
+
+## HTTP connection pool (DC-40698 / same pattern as S3 LDEV-6373)
+
+One shared `KinesisClient` is reused per credential/host/region (plus pool settings). Concurrent `PutRecord` calls share that client's **AWS SDK Apache HTTP connection pool**. The AWS SDK default is 50 connections; this extension defaults to **128**.
+
+When the pool is saturated, callers can block until `connectionAcquisitionTimeout` and fail with `ConnectionPoolTimeoutException` ("Timeout waiting for connection from pool"). Raising worker/`maxThreads` alone does not fix this — tune the HTTP pool.
+
+### Application.cfc
+
+```cfc
+component {
+    this.kinesis.accessKeyId = "my-access-key";
+    this.kinesis.secretAccessKey = "my-secret-key";
+    this.kinesis.host = "localstack:4566";   // optional custom endpoint
+    this.kinesis.region = "us-east-1";
+
+    // HTTP connection pool (AWS SDK v2 Apache client, per shared Kinesis client)
+    this.kinesis.pool = {
+        maxConnections: 200,              // extension default is 128 (AWS SDK default is 50)
+        connectionTimeout: 10000,         // ms to wait for a pool slot (SDK connectionAcquisitionTimeout)
+        socketTimeout: 50000,             // ms read timeout on an active connection
+        connectionMaxIdleMillis: 60000,   // discard idle pooled connections
+        warnUtilization: 0.8              // log WARN at 80% utilization; 0 to disable
+    };
+}
+```
+
+### Environment variables / system properties
+
+| Env | System property | Meaning |
+| --- | --- | --- |
+| `LUCEE_KINESIS_POOL_MAXCONNECTIONS` | `lucee.kinesis.pool.maxconnections` | Max concurrent HTTP connections per Kinesis client (extension default: 128) |
+| `LUCEE_KINESIS_POOL_CONNECTIONTIMEOUT` | `lucee.kinesis.pool.connectiontimeout` | Ms to wait for a connection from the pool (acquisition timeout) |
+| `LUCEE_KINESIS_POOL_SOCKETTIMEOUT` | `lucee.kinesis.pool.sockettimeout` | Socket read timeout in ms |
+| `LUCEE_KINESIS_POOL_CONNECTIONMAXIDLEMILLIS` | `lucee.kinesis.pool.connectionmaxidlemillis` | Idle connection TTL in ms |
+| `LUCEE_KINESIS_POOL_WARNUTILIZATION` | `lucee.kinesis.pool.warnutilization` | Log when in-flight requests reach this fraction of `maxConnections` (default: 0.8; `0` disables) |
+
+Alias: `LUCEE_KINESIS_MAXCONNECTIONS` / `lucee.kinesis.maxconnections` also sets max connections if the `pool.*` property is unset.
+
+Under pool pressure the extension logs WARN/ERROR on the `Kinesis` log channel (same idea as the S3 extension pool monitor).
 
 
 ## kinesisPut Function
@@ -80,6 +121,8 @@ In the asynchronous submission example, `listener` is a struct with `onSuccess` 
 Additionally, you have the ability to specify the maximum number of threads that can be executed in parallel by the extension for kinesisPut operations. 
 This can be achieved through the system property `lucee.kinesis.maxThreads=10` or the environment variable `LUCEE_KINESIS_MAXTHREADS=10`. 
 By default, parallel execution is limited to 10 threads, ensuring efficient resource utilization while maintaining optimal performance.
+
+Note: `maxThreads` only sizes the optional parallel executor. It does **not** size the AWS HTTP connection pool — use `LUCEE_KINESIS_POOL_MAXCONNECTIONS` for that.
 
 ## kinesisGet Function
 
