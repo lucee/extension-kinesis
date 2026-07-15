@@ -4,6 +4,9 @@
  * Exercises the CFML frontend (kinesisPut) with more concurrent callers than the
  * AWS SDK default pool size (50), so a misconfigured / unconfigured pool would
  * surface ConnectionPoolTimeoutException ("Timeout waiting for connection from pool").
+ *
+ * Skipped when KinesisValidate() fails (no credentials / endpoint in CI).
+ * See also HttpConnectionPoolSettings.cfc for pool-config coverage that runs without AWS.
  */
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
 
