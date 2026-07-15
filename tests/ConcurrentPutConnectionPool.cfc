@@ -65,56 +65,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                     expect(result.successCount).toBe(variables.parallelCount);
                 });
 
-                it(
-                    title = "with maxConnections forced to 5, 55 concurrent sync puts surface pool exhaustion",
-                    body = function() {
-                        application action="update" kinesis={
-                            accessKeyId: variables.kinesisAccessKeyId,
-                            secretAccessKey: variables.kinesisSecretAccessKey,
-                            host: variables.kinesisHost,
-                            region: variables.kinesisRegion,
-                            pool: {
-                                maxConnections: 5,
-                                connectionTimeout: 500
-                            }
-                        };
-
-                        try {
-                            var result = runParallelPuts(
-                                parallelCount = variables.parallelCount,
-                                streamName = variables.streamName,
-                                parallelFlag = false,
-                                waveId = "exhaust-" & createUUID()
-                            );
-
-                            var poolTimeouts = 0;
-                            for (var err in result.exceptions) {
-                                if (isConnectionPoolTimeout(err)) {
-                                    poolTimeouts++;
-                                }
-                            }
-
-                            expect(poolTimeouts).toBeGT(
-                                0,
-                                "Expected ConnectionPoolTimeoutException with maxConnections=5 and #variables.parallelCount# concurrent puts; "
-                                    & "got #arrayLen(result.exceptions)# exception(s), #result.successCount# success(es). "
-                                    & "If zero pool timeouts, pool settings may not have been applied."
-                            );
-                        }
-                        finally {
-                            application action="update" kinesis={
-                                accessKeyId: variables.kinesisAccessKeyId,
-                                secretAccessKey: variables.kinesisSecretAccessKey,
-                                host: variables.kinesisHost,
-                                region: variables.kinesisRegion,
-                                pool: {
-                                    maxConnections: 128,
-                                    connectionTimeout: 10000
-                                }
-                            };
-                        }
-                    }
-                );
+                // No negative "force pool exhaustion" case: LocalStack PutRecord is too fast for a
+                // reliable ConnectionPoolTimeoutException under maxConnections=5 (all waiters
+                // acquire before connectionTimeout). Mirrors S3 LDEV-6373 (load must succeed).
+                // Pool wiring is covered by HttpConnectionPoolSettings.cfc.
             }
         );
     }
