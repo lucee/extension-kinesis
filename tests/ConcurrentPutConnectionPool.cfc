@@ -8,6 +8,9 @@
  * Skipped only when KinesisValidate() fails (no credentials / endpoint).
  * CI provides LocalStack + LUCEE_KINESIS_* so these specs run there.
  * See also HttpConnectionPoolSettings.cfc for pool-config coverage without PutRecord.
+ *
+ * Important: detect support inside run() before describe(). TestBox evaluates
+ * describe(skip=...) when the suite is registered, which is before beforeAll().
  */
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
 
@@ -15,51 +18,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
     variables.streamName = "kinesis-pool-test";
     variables.notSupported = true;
 
-    function beforeAll() {
-        var envStream = server.system.environment.LUCEE_KINESIS_TEST_STREAM ?: "";
-        if (len(trim(envStream))) {
-            variables.streamName = trim(envStream);
-        }
-
-        try {
-            KinesisValidate();
-            variables.notSupported = false;
-        }
-        catch (any e) {
-            variables.notSupported = true;
-            systemOutput("ConcurrentPutConnectionPool skipped: KinesisValidate failed: " & (e.message ?: e.toString()), true);
-            return;
-        }
-
-        // Prefer configured test stream; fall back to legacy DistroKid stream names
-        if (!streamExists(variables.streamName)) {
-            if (streamExists("kds-dk-logs-localdev")) {
-                variables.streamName = "kds-dk-logs-localdev";
-            }
-            else if (streamExists("kds-dk-logs-dev")) {
-                variables.streamName = "kds-dk-logs-dev";
-            }
-            else {
-                variables.notSupported = true;
-                systemOutput(
-                    "ConcurrentPutConnectionPool skipped: no usable stream (tried #variables.streamName#, kds-dk-logs-localdev, kds-dk-logs-dev)",
-                    true
-                );
-            }
-        }
-    }
-
-    private boolean function streamExists(required string name) {
-        try {
-            kinesisInfo(arguments.name);
-            return true;
-        }
-        catch (any e) {
-            return false;
-        }
-    }
-
     function run(testResults, testBox) {
+        detectKinesisSupport();
+
         describe(
             title = "Concurrent kinesisPut beyond SDK default HTTP pool (50)",
             skip = variables.notSupported,
@@ -111,6 +72,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                     title = "with maxConnections forced to 5, 55 concurrent sync puts surface pool exhaustion",
                     body = function() {
                         application action="update" kinesis={
+                            accessKeyId: variables.kinesisAccessKeyId,
+                            secretAccessKey: variables.kinesisSecretAccessKey,
+                            host: variables.kinesisHost,
+                            region: variables.kinesisRegion,
                             pool: {
                                 maxConnections: 5,
                                 connectionTimeout: 500
@@ -141,6 +106,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                         }
                         finally {
                             application action="update" kinesis={
+                                accessKeyId: variables.kinesisAccessKeyId,
+                                secretAccessKey: variables.kinesisSecretAccessKey,
+                                host: variables.kinesisHost,
+                                region: variables.kinesisRegion,
                                 pool: {
                                     maxConnections: 128,
                                     connectionTimeout: 10000
@@ -151,6 +120,124 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 );
             }
         );
+    }
+
+    /**
+     * Must run before describe(skip=...) is registered.
+     */
+    private void function detectKinesisSupport() {
+        variables.notSupported = true;
+        variables.kinesisAccessKeyId = envOr("LUCEE_KINESIS_ACCESSKEYID", envOr("AWS_ACCESS_KEY_ID", "test"));
+        variables.kinesisSecretAccessKey = envOr("LUCEE_KINESIS_SECRETACCESSKEY", envOr("AWS_SECRET_ACCESS_KEY", "test"));
+        variables.kinesisHost = envOr("LUCEE_KINESIS_HOST", "");
+        variables.kinesisRegion = envOr("LUCEE_KINESIS_REGION", "us-east-1");
+        variables.streamName = envOr("LUCEE_KINESIS_TEST_STREAM", "kinesis-pool-test");
+
+        // Prefer Application.cfc style config so toKinesisProps / toHttpPoolSettings see it
+        var kinesisApp = {
+            accessKeyId: variables.kinesisAccessKeyId,
+            secretAccessKey: variables.kinesisSecretAccessKey,
+            region: variables.kinesisRegion,
+            pool: {
+                maxConnections: 128,
+                connectionTimeout: 10000
+            }
+        };
+        if (len(variables.kinesisHost)) {
+            kinesisApp.host = variables.kinesisHost;
+        }
+        application action="update" kinesis=kinesisApp;
+
+        try {
+            if (len(variables.kinesisHost)) {
+                KinesisValidate(
+                    accessKeyId = variables.kinesisAccessKeyId,
+                    secretAccessKey = variables.kinesisSecretAccessKey,
+                    host = variables.kinesisHost,
+                    location = variables.kinesisRegion
+                );
+            }
+            else {
+                KinesisValidate(
+                    accessKeyId = variables.kinesisAccessKeyId,
+                    secretAccessKey = variables.kinesisSecretAccessKey,
+                    location = variables.kinesisRegion
+                );
+            }
+            variables.notSupported = false;
+        }
+        catch (any e) {
+            variables.notSupported = true;
+            systemOutput(
+                "ConcurrentPutConnectionPool skipped: KinesisValidate failed: " & (e.message ?: e.toString())
+                    & " | host=" & variables.kinesisHost
+                    & " | stream=" & variables.streamName,
+                true
+            );
+            return;
+        }
+
+        if (!streamExists(variables.streamName)) {
+            if (streamExists("kds-dk-logs-localdev")) {
+                variables.streamName = "kds-dk-logs-localdev";
+            }
+            else if (streamExists("kds-dk-logs-dev")) {
+                variables.streamName = "kds-dk-logs-dev";
+            }
+            else {
+                variables.notSupported = true;
+                systemOutput(
+                    "ConcurrentPutConnectionPool skipped: no usable stream (tried #variables.streamName#, kds-dk-logs-localdev, kds-dk-logs-dev)",
+                    true
+                );
+                return;
+            }
+        }
+
+        systemOutput(
+            "ConcurrentPutConnectionPool enabled: host=" & variables.kinesisHost
+                & " stream=" & variables.streamName
+                & " region=" & variables.kinesisRegion,
+            true
+        );
+    }
+
+    private string function envOr(required string name, required string defaultValue) {
+        var env = server.system.environment ?: {};
+        if (structKeyExists(env, arguments.name) && len(trim(env[arguments.name]))) {
+            return trim(env[arguments.name]);
+        }
+        var prop = createObject("java", "java.lang.System").getProperty(arguments.name);
+        if (!isNull(prop) && len(trim(prop))) {
+            return trim(prop);
+        }
+        return arguments.defaultValue;
+    }
+
+    private boolean function streamExists(required string name) {
+        try {
+            if (len(variables.kinesisHost)) {
+                kinesisInfo(
+                    streamName = arguments.name,
+                    accessKeyId = variables.kinesisAccessKeyId,
+                    secretAccessKey = variables.kinesisSecretAccessKey,
+                    host = variables.kinesisHost,
+                    location = variables.kinesisRegion
+                );
+            }
+            else {
+                kinesisInfo(
+                    streamName = arguments.name,
+                    accessKeyId = variables.kinesisAccessKeyId,
+                    secretAccessKey = variables.kinesisSecretAccessKey,
+                    location = variables.kinesisRegion
+                );
+            }
+            return true;
+        }
+        catch (any e) {
+            return false;
+        }
     }
 
     /**
@@ -178,28 +265,40 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                 parallelFlag=arguments.parallelFlag
                 record=duplicate(record)
                 putIndex=i
+                accessKeyId=variables.kinesisAccessKeyId
+                secretAccessKey=variables.kinesisSecretAccessKey
+                host=variables.kinesisHost
+                region=variables.kinesisRegion
             {
                 thread.success = false;
                 thread.error = javacast("null", "");
 
                 try {
+                    var putArgs = {
+                        data: record,
+                        partitionKey: "kinesis-pool-" & putIndex,
+                        streamName: streamName,
+                        parallel: parallelFlag,
+                        accessKeyId: accessKeyId,
+                        secretAccessKey: secretAccessKey,
+                        location: region
+                    };
+                    if (len(host)) {
+                        putArgs.host = host;
+                    }
+
                     if (parallelFlag) {
                         var doneKey = "kinesis-pool-done-" & createUUID();
-
-                        kinesisPut(
-                            data = record,
-                            partitionKey = "kinesis-pool-" & putIndex,
-                            streamName = streamName,
-                            parallel = true,
-                            listener = {
-                                onSuccess: function(result) {
-                                    application[doneKey] = { ok: true };
-                                },
-                                onError: function(error) {
-                                    application[doneKey] = { ok: false, error: error };
-                                }
+                        putArgs.listener = {
+                            onSuccess: function(result) {
+                                application[doneKey] = { ok: true };
+                            },
+                            onError: function(error) {
+                                application[doneKey] = { ok: false, error: error };
                             }
-                        );
+                        };
+
+                        kinesisPut(argumentCollection = putArgs);
 
                         var waits = 200;
                         while ((--waits) > 0) {
@@ -223,12 +322,8 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="kinesis" {
                         thread.success = true;
                     }
                     else {
-                        var rsp = kinesisPut(
-                            data = record,
-                            partitionKey = "kinesis-pool-" & putIndex,
-                            streamName = streamName,
-                            parallel = false
-                        );
+                        putArgs.parallel = false;
+                        var rsp = kinesisPut(argumentCollection = putArgs);
                         if (!structKeyExists(rsp, "sequenceNumber")) {
                             throw(message = "kinesisPut response missing sequenceNumber", detail = serializeJSON(rsp));
                         }
