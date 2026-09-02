@@ -9,6 +9,7 @@ import java.util.List;
 import org.lucee.extension.aws.kinesis.AmazonKinesisClient;
 import org.lucee.extension.aws.kinesis.util.CommonUtil;
 import org.lucee.extension.aws.kinesis.util.Functions;
+import org.lucee.extension.aws.kinesis.util.KinesisGetRecordsGuard;
 
 import lucee.commons.io.log.Log;
 import lucee.loader.engine.CFMLEngine;
@@ -137,14 +138,18 @@ public class KinesisGet extends KinesisFunction {
 			}
 
 			// validate shardId
+			String resolvedShardId;
 			String shardIterator;
 			if (Util.isEmpty(shardId, true)) {
-				shardIterator = getLatestShardIterator(client, streamName);
+				String[] latest = getLatestShardIterator(client, streamName);
+				resolvedShardId = latest[0];
+				shardIterator = latest[1];
 			}
 			else {
+				resolvedShardId = shardId.trim();
 				Builder builder = GetShardIteratorRequest.builder();
 				builder.streamName(streamName.trim());
-				builder.shardId(shardId.trim());
+				builder.shardId(resolvedShardId);
 				builder.shardIteratorType(iteratorType);
 				if (sequenceNumberRequired) {
 					builder.startingSequenceNumber(sequenceNumber);
@@ -165,7 +170,7 @@ public class KinesisGet extends KinesisFunction {
 			Record r;
 			int row;
 			outer: while (moreRecordsAvailable) {
-				GetRecordsResponse rsp = client.getRecords(GetRecordsRequest.builder().shardIterator(shardIterator).limit(RECORD_LIMIT).build());
+				GetRecordsResponse rsp = getRecordsPaced(client, log, streamName, resolvedShardId, shardIterator);
 				// result.setAtEL(_data, result.addRow(), "millisBehindLatest:" + rsp.millisBehindLatest());
 				// result.setAtEL(_data, result.addRow(), "hasRecords:" + rsp.hasRecords());
 
@@ -200,7 +205,35 @@ public class KinesisGet extends KinesisFunction {
 		}
 	}
 
-	private static String getLatestShardIterator(KinesisClient kinesisClient, String streamName) {
+	private static GetRecordsResponse getRecordsPaced(KinesisClient client, Log log, String streamName, String shardId, String shardIterator) throws Exception {
+		int attempt = 0;
+		while (true) {
+			KinesisGetRecordsGuard.throttle(streamName, shardId, log);
+			try {
+				return client.getRecords(GetRecordsRequest.builder().shardIterator(shardIterator).limit(RECORD_LIMIT).build());
+			}
+			catch (Exception e) {
+				attempt++;
+				if (!KinesisGetRecordsGuard.isThroughputExceeded(e) || attempt > KinesisGetRecordsGuard.MAX_THROTTLE_RETRIES) {
+					throw e;
+				}
+				long extraWait = KinesisGetRecordsGuard.backoffMs(attempt);
+				if (log != null) {
+					log.log(Log.LEVEL_WARN, "Kinesis",
+							"GetRecords throttled stream=" + streamName + " shardId=" + shardId + " attempt=" + attempt + " backoffMs=" + extraWait + " error=" + e.getMessage());
+				}
+				try {
+					Thread.sleep(extraWait);
+				}
+				catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					throw e;
+				}
+			}
+		}
+	}
+
+	private static String[] getLatestShardIterator(KinesisClient kinesisClient, String streamName) {
 		String lastShardId = null;
 		DescribeStreamRequest describeStreamRequest = DescribeStreamRequest.builder().streamName(streamName).build();
 
@@ -219,7 +252,7 @@ public class KinesisGet extends KinesisFunction {
 		GetShardIteratorRequest itReq = GetShardIteratorRequest.builder().streamName(streamName).shardIteratorType("TRIM_HORIZON").shardId(lastShardId).build();
 
 		GetShardIteratorResponse shardIteratorResult = kinesisClient.getShardIterator(itReq);
-		return shardIteratorResult.shardIterator();
+		return new String[] { lastShardId, shardIteratorResult.shardIterator() };
 	}
 
 	@Override

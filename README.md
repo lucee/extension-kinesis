@@ -54,6 +54,14 @@ Alias: `LUCEE_KINESIS_MAXCONNECTIONS` / `lucee.kinesis.maxconnections` also sets
 
 Under pool pressure the extension logs WARN/ERROR on the `Kinesis` log channel (same idea as the S3 extension pool monitor).
 
+## GetRecords pacing (shard rate limit)
+
+AWS allows **5 GetRecords per second per shard**. `kinesisGet` logs each GetRecords on the `Kinesis` channel:
+
+`GetRecords stream=... shardId=... ts=... waitMs=...`
+
+If this JVM already called GetRecords on the same stream+shard within 200ms, it waits (`waitMs` > 0, WARN). If AWS still returns `ProvisionedThroughputExceededException` / `Rate exceeded for Shard`, it backs off (200ms, 400ms, 800ms) up to 3 times, then throws. This does not raise AWS's cap; it only keeps this process from bursting past it. Other consumers on the same shard still share the 5 TPS.
+
 
 ## kinesisPut Function
 
