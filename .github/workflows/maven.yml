@@ -49,6 +49,7 @@ jobs:
     env:
       LUCEE_TEST_VERSIONS_JAKARTA: ${{ vars.LUCEE_TEST_VERSIONS_JAKARTA }}
     strategy:
+      fail-fast: false
       matrix:
         lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS_JAKARTA) }}
 
