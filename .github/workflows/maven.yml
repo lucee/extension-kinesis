@@ -140,6 +140,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: test
           AWS_DEFAULT_REGION: us-east-1
 
+      - name: Set up JDK 21 for the test runtime
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
       - name: Run Lucee Test Suite
         uses: lucee/script-runner@main
         with:
